@@ -1027,26 +1027,186 @@
     });
 
     // Parse insights report HTML
-    // Helper to safely parse numbers from text
+    // ========================================
+    // SEMANTIC SCRAPING HELPERS
+    // Designed to handle variations in Claude Code's insights HTML format
+    // ========================================
+
+    // Safely parse integers from messy text
     function safeParseInt(text) {
       if (!text) return 0;
-      const cleaned = String(text).replace(/[,\s]/g, '');
+      // Remove commas, spaces, and other non-numeric chars (except minus)
+      const cleaned = String(text).replace(/[^\d\-]/g, '');
       const num = parseInt(cleaned);
       return isNaN(num) ? 0 : num;
     }
 
+    // Safely parse floats from messy text
     function safeParseFloat(text) {
       if (!text) return 0;
-      const cleaned = String(text).replace(/[,\s]/g, '');
+      // Extract first decimal number from text
+      const match = String(text).match(/-?[\d,]+\.?\d*/);
+      if (!match) return 0;
+      const cleaned = match[0].replace(/,/g, '');
       const num = parseFloat(cleaned);
       return isNaN(num) ? 0 : num;
     }
 
+    // Find a number that appears near a keyword in text
+    function findNumberNearKeyword(text, keywords, options = {}) {
+      const { lookBefore = 50, lookAfter = 50, parseAsFloat = false } = options;
+      const lowerText = text.toLowerCase();
+
+      for (const keyword of keywords) {
+        const idx = lowerText.indexOf(keyword.toLowerCase());
+        if (idx === -1) continue;
+
+        // Get the surrounding context
+        const start = Math.max(0, idx - lookBefore);
+        const end = Math.min(text.length, idx + keyword.length + lookAfter);
+        const context = text.substring(start, end);
+
+        // Find numbers in the context
+        const numbers = context.match(/[\d,]+\.?\d*/g);
+        if (numbers && numbers.length > 0) {
+          // Return the first significant number
+          for (const numStr of numbers) {
+            const num = parseAsFloat ? safeParseFloat(numStr) : safeParseInt(numStr);
+            if (num > 0) return num;
+          }
+        }
+      }
+      return 0;
+    }
+
+    // Find sections of the document containing specific text
+    function findSectionsContaining(doc, keywords, containerSelectors = ['section', 'div', 'article']) {
+      const results = [];
+      const lowerKeywords = keywords.map(k => k.toLowerCase());
+
+      for (const selector of containerSelectors) {
+        const elements = doc.querySelectorAll(selector);
+        for (const el of elements) {
+          const text = el.textContent.toLowerCase();
+          if (lowerKeywords.some(kw => text.includes(kw))) {
+            results.push(el);
+          }
+        }
+      }
+
+      // Sort by specificity (smaller elements first - more targeted)
+      results.sort((a, b) => a.textContent.length - b.textContent.length);
+      return results;
+    }
+
+    // Extract label-value pairs from a container using multiple strategies
+    function extractLabelValuePairs(container) {
+      const result = {};
+      if (!container) return result;
+
+      // Strategy 1: Look for explicit bar-row / bar-label / bar-value classes
+      const explicitRows = container.querySelectorAll('.bar-row, [class*="bar-row"]');
+      if (explicitRows.length > 0) {
+        explicitRows.forEach(row => {
+          const label = row.querySelector('.bar-label, [class*="label"]');
+          const value = row.querySelector('.bar-value, [class*="value"]');
+          if (label && value) {
+            const labelText = label.textContent.trim();
+            const valueNum = safeParseInt(value.textContent);
+            if (labelText && valueNum > 0) result[labelText] = valueNum;
+          }
+        });
+        if (Object.keys(result).length > 0) return result;
+      }
+
+      // Strategy 2: Look for flex/grid rows with label + number pattern
+      const allDivs = container.querySelectorAll('div, span, li');
+      const parentsSeen = new Set();
+
+      allDivs.forEach(el => {
+        const parent = el.parentElement;
+        if (!parent || parentsSeen.has(parent)) return;
+
+        const children = Array.from(parent.children);
+        if (children.length >= 2) {
+          // Check if first child looks like label and second like number
+          const first = children[0].textContent.trim();
+          const last = children[children.length - 1].textContent.trim();
+
+          if (first && /^\d/.test(last)) {
+            const num = safeParseInt(last);
+            if (num > 0 && first.length < 50) {
+              result[first] = num;
+              parentsSeen.add(parent);
+            }
+          }
+        }
+      });
+      if (Object.keys(result).length > 0) return result;
+
+      // Strategy 3: Regex on inner HTML for "Label...Number" patterns
+      const html = container.innerHTML;
+      const patterns = [
+        /([A-Za-z][A-Za-z\s\-]+?)\s*(?:<[^>]*>)*\s*([\d,]+)\s*(?:<|$)/g,
+        /<[^>]*>([A-Za-z][^<]{2,30})<\/[^>]*>\s*(?:<[^>]*>)*([\d,]+)/g
+      ];
+
+      for (const pattern of patterns) {
+        let match;
+        while ((match = pattern.exec(html)) !== null) {
+          const label = match[1].trim();
+          const num = safeParseInt(match[2]);
+          if (label && num > 0 && !result[label]) {
+            result[label] = num;
+          }
+        }
+      }
+
+      return result;
+    }
+
+    // Special extractor for time of day data
+    function extractTimeOfDay(doc) {
+      const timeData = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+      const bodyText = doc.body.textContent;
+
+      // Try to find time of day section
+      const timeSection = findSectionsContaining(doc, ['time of day', 'activity by time', 'when you work'])[0];
+
+      if (timeSection) {
+        const pairs = extractLabelValuePairs(timeSection);
+        Object.entries(pairs).forEach(([label, value]) => {
+          const lower = label.toLowerCase();
+          if (lower.includes('morning') || lower.includes('am') && lower.includes('6')) timeData.morning = value;
+          else if (lower.includes('afternoon') || lower.includes('noon')) timeData.afternoon = value;
+          else if (lower.includes('evening') || lower.includes('pm') && lower.includes('6')) timeData.evening = value;
+          else if (lower.includes('night') || lower.includes('midnight')) timeData.night = value;
+        });
+      }
+
+      // Fallback: look for patterns in text
+      if (Object.values(timeData).every(v => v === 0)) {
+        const patterns = [
+          { key: 'morning', regex: /morning[:\s]*([\d,]+)/i },
+          { key: 'afternoon', regex: /afternoon[:\s]*([\d,]+)/i },
+          { key: 'evening', regex: /evening[:\s]*([\d,]+)/i },
+          { key: 'night', regex: /night[:\s]*([\d,]+)/i }
+        ];
+        patterns.forEach(({ key, regex }) => {
+          const match = bodyText.match(regex);
+          if (match) timeData[key] = safeParseInt(match[1]);
+        });
+      }
+
+      return timeData;
+    }
+
     // Helper to find chart by title (flexible matching)
     function findChartByTitle(doc, ...keywords) {
+      // Strategy 1: Look for explicit chart-card class
       const cards = doc.querySelectorAll('.chart-card, [class*="chart"], [class*="card"]');
       for (const card of cards) {
-        const title = card.querySelector('.chart-title, h2, h3, [class*="title"]');
+        const title = card.querySelector('.chart-title, h2, h3, h4, [class*="title"]');
         if (title) {
           const titleText = title.textContent.toLowerCase();
           if (keywords.some(kw => titleText.includes(kw.toLowerCase()))) {
@@ -1054,33 +1214,38 @@
           }
         }
       }
-      return null;
+
+      // Strategy 2: Find any container with the keyword in a heading
+      const headings = doc.querySelectorAll('h2, h3, h4');
+      for (const heading of headings) {
+        const titleText = heading.textContent.toLowerCase();
+        if (keywords.some(kw => titleText.includes(kw.toLowerCase()))) {
+          // Return the parent container
+          let container = heading.parentElement;
+          // Go up a couple levels to get a meaningful container
+          for (let i = 0; i < 2 && container && container !== doc.body; i++) {
+            if (container.children.length > 2) break;
+            container = container.parentElement;
+          }
+          return container;
+        }
+      }
+
+      // Strategy 3: Use findSectionsContaining
+      const sections = findSectionsContaining(doc, keywords);
+      return sections[0] || null;
     }
 
-    // Helper to extract bar chart data
+    // Helper to extract bar chart data (wraps extractLabelValuePairs for backward compat)
     function extractBarData(card) {
-      const result = {};
-      if (!card) return result;
-
-      // Try multiple selector patterns
-      const rows = card.querySelectorAll('.bar-row, [class*="bar"], tr');
-      rows.forEach(row => {
-        const label = row.querySelector('.bar-label, [class*="label"], td:first-child');
-        const value = row.querySelector('.bar-value, [class*="value"], td:last-child');
-        if (label && value) {
-          const labelText = label.textContent.trim();
-          const valueNum = safeParseInt(value.textContent);
-          if (labelText && valueNum > 0) {
-            result[labelText] = valueNum;
-          }
-        }
-      });
-      return result;
+      return extractLabelValuePairs(card);
     }
 
     function parseInsightsReport(html) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
+      const bodyText = doc.body.textContent;
+      const bodyHtml = doc.body.innerHTML;
 
       const data = {
         messages: 0,
@@ -1101,24 +1266,21 @@
       };
 
       try {
-        // Parse stats row - try multiple selectors
+        // ========================================
+        // PARSE SUMMARY STATS (messages, lines, files, days, msgs/day)
+        // ========================================
+
+        // Strategy 1: Look for stat-value class elements
         const statValues = doc.querySelectorAll('.stat-value, [class*="stat"] [class*="value"]');
         const statsArray = Array.from(statValues).map(el => el.textContent.trim());
 
-        // Also try to find stats by looking for large numbers near labels
-        if (statsArray.length === 0) {
-          // Fallback: search for patterns in text
-          const bodyText = doc.body.textContent;
-          const msgMatch = bodyText.match(/(\d[\d,]*)\s*(?:messages|msgs)/i);
-          if (msgMatch) data.messages = safeParseInt(msgMatch[1]);
-        } else {
+        if (statsArray.length >= 3) {
+          // Parse in expected order: messages, lines, files, days, msgs/day
           statsArray.forEach((text, i) => {
             switch(i) {
               case 0: data.messages = safeParseInt(text); break;
               case 1:
-                // Try multiple patterns for lines
-                let match = text.match(/\+?([\d,]+)\s*\/\s*-?([\d,]+)/);
-                if (!match) match = text.match(/(\d[\d,]*)\s*[\/|]\s*(\d[\d,]*)/);
+                let match = text.match(/\+?([\d,]+)\s*[\/\|]\s*-?([\d,]+)/);
                 if (match) {
                   data.lines.added = safeParseInt(match[1]);
                   data.lines.removed = safeParseInt(match[2]);
@@ -1131,80 +1293,129 @@
           });
         }
 
-        // Calculate msgsPerDay if missing but we have messages and days
-        if (data.msgsPerDay === 0 && data.messages > 0 && data.days > 0) {
-          data.msgsPerDay = data.messages / data.days;
+        // Strategy 2: Find numbers near keywords in text
+        if (data.messages === 0) {
+          data.messages = findNumberNearKeyword(bodyText, ['messages', 'msgs', 'total messages']);
+        }
+        if (data.files === 0) {
+          data.files = findNumberNearKeyword(bodyText, ['files touched', 'files modified', 'files']);
+        }
+        if (data.days === 0) {
+          data.days = findNumberNearKeyword(bodyText, ['days', 'active days', 'days active']);
+        }
+        if (data.lines.added === 0) {
+          const linesSection = bodyText.match(/lines[:\s]*([\d,]+)\s*[\/\|+]\s*([\d,]+)/i);
+          if (linesSection) {
+            data.lines.added = safeParseInt(linesSection[1]);
+            data.lines.removed = safeParseInt(linesSection[2]);
+          } else {
+            data.lines.added = findNumberNearKeyword(bodyText, ['lines added', 'added', '+']);
+            data.lines.removed = findNumberNearKeyword(bodyText, ['lines removed', 'removed', 'deleted']);
+          }
         }
 
-        // Parse tool usage - flexible matching
-        const toolsCard = findChartByTitle(doc, 'tools', 'tool usage');
-        data.tools = extractBarData(toolsCard);
+        // Calculate msgsPerDay if missing
+        if (data.msgsPerDay === 0 && data.messages > 0 && data.days > 0) {
+          data.msgsPerDay = Math.round((data.messages / data.days) * 10) / 10;
+        }
 
-        // Parse languages - flexible matching
-        const langsCard = findChartByTitle(doc, 'language');
-        data.languages = extractBarData(langsCard);
+        // ========================================
+        // PARSE TOOL USAGE
+        // ========================================
+        const toolsCard = findChartByTitle(doc, 'tools', 'tool usage', 'tool calls');
+        data.tools = extractLabelValuePairs(toolsCard);
 
-        // Parse errors - flexible matching
-        const errorsCard = findChartByTitle(doc, 'error');
-        data.errors = extractBarData(errorsCard);
-        data.errorTotal = Object.values(data.errors).reduce((a, b) => a + b, 0);
-
-        // Parse time of day - flexible matching
-        const timeCard = findChartByTitle(doc, 'time of day', 'activity');
-        if (timeCard) {
-          const timeData = extractBarData(timeCard);
-          Object.entries(timeData).forEach(([label, value]) => {
-            const lowerLabel = label.toLowerCase();
-            if (lowerLabel.includes('morning')) data.timeOfDay.morning = value;
-            else if (lowerLabel.includes('afternoon')) data.timeOfDay.afternoon = value;
-            else if (lowerLabel.includes('evening')) data.timeOfDay.evening = value;
-            else if (lowerLabel.includes('night')) data.timeOfDay.night = value;
+        // Fallback: search for known tool names in text
+        if (Object.keys(data.tools).length === 0) {
+          const knownTools = ['Bash', 'Read', 'Edit', 'Write', 'Grep', 'Glob', 'Task', 'WebFetch'];
+          knownTools.forEach(tool => {
+            const pattern = new RegExp(tool + '[\\s:]*([\\d,]+)', 'i');
+            const match = bodyText.match(pattern);
+            if (match) data.tools[tool] = safeParseInt(match[1]);
           });
         }
 
-        // Parse response time - try multiple patterns
-        const bodyHtml = doc.body.innerHTML;
-        let responseMatch = bodyHtml.match(/Median:\s*([\d.]+)\s*s?\s*[•·\-|]\s*Average:\s*([\d.]+)\s*s?/i);
-        if (!responseMatch) responseMatch = bodyHtml.match(/median[:\s]*([\d.]+)\s*s/i);
-        if (responseMatch) {
-          data.responseTime.median = safeParseFloat(responseMatch[1]);
-          data.responseTime.average = safeParseFloat(responseMatch[2] || responseMatch[1]);
+        // ========================================
+        // PARSE LANGUAGES
+        // ========================================
+        const langsCard = findChartByTitle(doc, 'language', 'programming', 'code by');
+        data.languages = extractLabelValuePairs(langsCard);
+
+        // Fallback: look for common language names with numbers
+        if (Object.keys(data.languages).length === 0) {
+          const knownLangs = ['Python', 'TypeScript', 'JavaScript', 'Go', 'Rust', 'Java', 'Ruby', 'C++', 'HTML', 'CSS', 'Shell', 'Bash'];
+          knownLangs.forEach(lang => {
+            const num = findNumberNearKeyword(bodyText, [lang]);
+            if (num > 50) data.languages[lang] = num;
+          });
         }
 
-        // Parse multi-clauding - more flexible patterns
-        const multiPatterns = [
-          /(\d+)\s*(?:<[^>]*>)*\s*Overlap\s*Events/i,
-          /Overlap\s*Events\s*(?:<[^>]*>)*\s*(\d+)/i,
-          /(\d+)\s*overlap/i
+        // ========================================
+        // PARSE ERRORS
+        // ========================================
+        const errorsCard = findChartByTitle(doc, 'error', 'tool errors', 'failures');
+        data.errors = extractLabelValuePairs(errorsCard);
+        data.errorTotal = Object.values(data.errors).reduce((a, b) => a + b, 0);
+
+        // ========================================
+        // PARSE TIME OF DAY
+        // ========================================
+        data.timeOfDay = extractTimeOfDay(doc);
+
+        // ========================================
+        // PARSE RESPONSE TIME
+        // ========================================
+        const responsePatterns = [
+          /Median:\s*([\d.]+)\s*s?\s*[•·\-|]\s*Average:\s*([\d.]+)\s*s?/i,
+          /median[:\s]*([\d.]+)\s*s.*?average[:\s]*([\d.]+)\s*s/i,
+          /response\s*time[:\s]*([\d.]+)\s*s/i,
+          /median[:\s]*([\d.]+)/i
         ];
-        for (const pattern of multiPatterns) {
-          const match = bodyHtml.match(pattern);
-          if (match) { data.multiClauding.events = safeParseInt(match[1]); break; }
+        for (const pattern of responsePatterns) {
+          const match = bodyText.match(pattern);
+          if (match) {
+            data.responseTime.median = safeParseFloat(match[1]);
+            data.responseTime.average = safeParseFloat(match[2] || match[1]);
+            break;
+          }
         }
 
-        const sessionsPatterns = [
-          /(\d+)\s*(?:<[^>]*>)*\s*Sessions?\s*Involved/i,
-          /Sessions?\s*Involved\s*(?:<[^>]*>)*\s*(\d+)/i
-        ];
-        for (const pattern of sessionsPatterns) {
-          const match = bodyHtml.match(pattern);
-          if (match) { data.multiClauding.sessions = safeParseInt(match[1]); break; }
+        // ========================================
+        // PARSE MULTI-CLAUDING
+        // ========================================
+        const multiSection = findSectionsContaining(doc, ['multi-clauding', 'overlap', 'parallel sessions'])[0];
+        if (multiSection) {
+          const sectionText = multiSection.textContent;
+          data.multiClauding.events = findNumberNearKeyword(sectionText, ['overlap events', 'overlaps', 'events']);
+          data.multiClauding.sessions = findNumberNearKeyword(sectionText, ['sessions involved', 'sessions']);
+          const percentMatch = sectionText.match(/(\d+)\s*%/);
+          if (percentMatch) data.multiClauding.percent = safeParseInt(percentMatch[1]);
         }
 
-        const percentPatterns = [
-          /(\d+)%\s*(?:<[^>]*>)*\s*(?:Of\s*)?Messages/i,
-          /(\d+)\s*%\s*of\s*messages/i
-        ];
-        for (const pattern of percentPatterns) {
-          const match = bodyHtml.match(pattern);
-          if (match) { data.multiClauding.percent = safeParseInt(match[1]); break; }
+        // Fallback: regex on full body
+        if (data.multiClauding.events === 0) {
+          const eventsMatch = bodyHtml.match(/(\d+)\s*(?:<[^>]*>)*\s*Overlap\s*Events/i) ||
+                              bodyHtml.match(/Overlap\s*Events[:\s]*(\d+)/i);
+          if (eventsMatch) data.multiClauding.events = safeParseInt(eventsMatch[1]);
+        }
+        if (data.multiClauding.sessions === 0) {
+          const sessMatch = bodyHtml.match(/(\d+)\s*(?:<[^>]*>)*\s*Sessions?\s*Involved/i) ||
+                            bodyHtml.match(/Sessions?\s*Involved[:\s]*(\d+)/i);
+          if (sessMatch) data.multiClauding.sessions = safeParseInt(sessMatch[1]);
+        }
+        if (data.multiClauding.percent === 0) {
+          const pctMatch = bodyHtml.match(/(\d+)\s*%\s*(?:of\s*)?messages/i);
+          if (pctMatch) data.multiClauding.percent = safeParseInt(pctMatch[1]);
         }
 
-        // Parse rawHourCounts from script - try multiple patterns
+        // ========================================
+        // PARSE RAW HOUR COUNTS (for schedule analysis)
+        // ========================================
         const scriptPatterns = [
           /rawHourCounts\s*=\s*(\{[^}]+\})/,
           /hourCounts\s*[=:]\s*(\{[^}]+\})/,
-          /"hours"\s*:\s*(\{[^}]+\})/
+          /"hours"\s*:\s*(\{[^}]+\})/,
+          /hourData\s*=\s*(\{[^}]+\})/
         ];
         for (const pattern of scriptPatterns) {
           const match = html.match(pattern);
@@ -1212,33 +1423,70 @@
             try {
               data.rawHourCounts = JSON.parse(match[1]);
               break;
-            } catch (e) {}
+            } catch (e) { /* ignore parse errors */ }
           }
         }
 
-        // Parse friction categories - try multiple selectors
-        const frictionSelectors = ['.friction-title', '[class*="friction"] [class*="title"]', '.pain-point'];
-        for (const selector of frictionSelectors) {
-          const elements = doc.querySelectorAll(selector);
-          if (elements.length > 0) {
-            elements.forEach(el => data.frictionCategories.push(el.textContent.trim()));
-            break;
+        // ========================================
+        // PARSE FRICTION CATEGORIES
+        // ========================================
+        const frictionSection = findSectionsContaining(doc, ['friction', 'pain points', 'what\'s hindering', 'challenges'])[0];
+        if (frictionSection) {
+          // Look for titles/headings within friction section
+          const titles = frictionSection.querySelectorAll('h3, h4, .friction-title, [class*="friction"] [class*="title"], strong');
+          titles.forEach(el => {
+            const text = el.textContent.trim();
+            if (text.length > 3 && text.length < 100) {
+              data.frictionCategories.push(text);
+            }
+          });
+        }
+
+        // Fallback: explicit selectors
+        if (data.frictionCategories.length === 0) {
+          const frictionSelectors = ['.friction-title', '[class*="friction"] [class*="title"]', '.pain-point'];
+          for (const selector of frictionSelectors) {
+            const elements = doc.querySelectorAll(selector);
+            if (elements.length > 0) {
+              elements.forEach(el => data.frictionCategories.push(el.textContent.trim()));
+              break;
+            }
           }
         }
 
-        // Parse big wins - try multiple selectors
-        const winsSelectors = ['.big-win-title', '[class*="win"] [class*="title"]', '.achievement'];
-        for (const selector of winsSelectors) {
-          const elements = doc.querySelectorAll(selector);
-          if (elements.length > 0) {
-            elements.forEach(el => data.bigWins.push(el.textContent.trim()));
-            break;
+        // ========================================
+        // PARSE BIG WINS / ACHIEVEMENTS
+        // ========================================
+        const winsSection = findSectionsContaining(doc, ['impressive things', 'big wins', 'achievements', 'accomplishments'])[0];
+        if (winsSection) {
+          const titles = winsSection.querySelectorAll('h3, h4, .big-win-title, [class*="win"] [class*="title"], strong');
+          titles.forEach(el => {
+            const text = el.textContent.trim();
+            if (text.length > 3 && text.length < 150) {
+              data.bigWins.push(text);
+            }
+          });
+        }
+
+        // Fallback: explicit selectors
+        if (data.bigWins.length === 0) {
+          const winsSelectors = ['.big-win-title', '[class*="win"] [class*="title"]', '.achievement'];
+          for (const selector of winsSelectors) {
+            const elements = doc.querySelectorAll(selector);
+            if (elements.length > 0) {
+              elements.forEach(el => data.bigWins.push(el.textContent.trim()));
+              break;
+            }
           }
         }
 
       } catch (e) {
         console.error('Error parsing insights report:', e);
+        console.error('Stack:', e.stack);
       }
+
+      // Debug: log parsed data for troubleshooting
+      console.log('Parsed insights data:', data);
 
       return data;
     }
