@@ -1773,8 +1773,12 @@
       }
 
       // Shared friction points
-      const sharedFriction = a.frictionCategories.filter(f =>
-        b.frictionCategories.some(bf => bf.toLowerCase().includes(f.split(' ')[0].toLowerCase()))
+      const getFrictionTitle = (f) => typeof f === 'object' ? f.title : f;
+      const frictionTitlesA = a.frictionCategories.map(getFrictionTitle);
+      const frictionTitlesB = b.frictionCategories.map(getFrictionTitle);
+
+      const sharedFriction = frictionTitlesA.filter(f =>
+        frictionTitlesB.some(bf => bf.toLowerCase().includes(f.split(' ')[0].toLowerCase()))
       );
       if (sharedFriction.length > 0) {
         sameEnergy.push({ emoji: '😤', text: `Both struggle with ${sharedFriction[0].split(' ').slice(0, 3).join(' ')}...` });
