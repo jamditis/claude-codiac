@@ -1,0 +1,11 @@
+name = "codiac-share"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# R2 bucket binding
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "pi-transfer"
+
+[vars]
+ALLOWED_ORIGINS = "https://codiac.amditis.tech,https://codiac-bmt.pages.dev,http://localhost:8765"

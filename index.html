@@ -1,0 +1,2312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Codiac - Compare your coding souls</title>
+
+  <!-- Open Graph / Social Sharing -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://codiac.amditis.tech/">
+  <meta property="og:title" content="Claude Codiac - Compare your coding souls">
+  <meta property="og:description" content="Upload two Claude Code /insights reports and discover your coding compatibility. Fun personality analysis for developers!">
+  <meta property="og:image" content="https://codiac.amditis.tech/og-image.png">
+  <meta property="og:image:width" content="1144">
+  <meta property="og:image:height" content="688">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Claude Codiac - Compare your coding souls">
+  <meta name="twitter:description" content="Upload two Claude Code /insights reports and discover your coding compatibility.">
+  <meta name="twitter:image" content="https://codiac.amditis.tech/og-image.png">
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%23ff6b6b'/><stop offset='50%' stop-color='%23ff9f43'/><stop offset='100%' stop-color='%23feca57'/></linearGradient></defs><circle cx='50' cy='50' r='45' fill='url(%23g)'/><text x='50' y='68' font-size='50' text-anchor='middle' fill='white'>🔮</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --coral: #ff6b6b;
+      --orange: #ff9f43;
+      --gold: #feca57;
+      --magenta: #ee5a9e;
+      --teal: #1dd1a1;
+      --warmRed: #ff4757;
+      --gradient-fun: linear-gradient(135deg, #ff6b6b 0%, #ff9f43 50%, #feca57 100%);
+      --gradient-coral: linear-gradient(135deg, #ff6b6b 0%, #ee5a9e 100%);
+      --gradient-orange: linear-gradient(135deg, #ff9f43 0%, #feca57 100%);
+      --gradient-teal: linear-gradient(135deg, #1dd1a1 0%, #48dbfb 100%);
+      --shadow-chunky: 6px 6px 0 rgba(0,0,0,0.15);
+      --shadow-glow: 0 0 30px rgba(255, 159, 67, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(180deg, #fff5f5 0%, #fff9e6 50%, #fffaf0 100%);
+      min-height: 100vh;
+      color: #1e1b4b;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      padding: 40px 0;
+    }
+
+    .logo {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 3.5rem;
+      font-weight: 700;
+      background: var(--gradient-fun);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+      letter-spacing: -2px;
+    }
+
+    .tagline {
+      font-size: 1.2rem;
+      color: #6b7280;
+      font-weight: 500;
+    }
+
+    /* Upload section */
+    .upload-section {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 24px;
+      align-items: center;
+      margin: 40px 0;
+    }
+
+    .drop-zone {
+      background: white;
+      border: 4px dashed #d1d5db;
+      border-radius: 20px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-chunky);
+      position: relative;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .drop-zone:hover {
+      border-color: var(--orange);
+      transform: translateY(-4px);
+      box-shadow: 8px 8px 0 rgba(139, 92, 246, 0.2);
+    }
+
+    .drop-zone.dragover {
+      border-color: var(--coral);
+      background: #fdf4ff;
+    }
+
+    .drop-zone.loaded {
+      border-style: solid;
+      border-color: var(--teal);
+      background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
+    }
+
+    .drop-zone-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+
+    .drop-zone-label {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+
+    .drop-zone-hint {
+      font-size: 0.9rem;
+      color: #9ca3af;
+    }
+
+    .loaded-info {
+      display: none;
+    }
+
+    .drop-zone.loaded .loaded-info {
+      display: block;
+    }
+
+    .drop-zone.loaded .drop-zone-prompt {
+      display: none;
+    }
+
+    .loaded-name {
+      font-weight: 700;
+      color: #0d9488;
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    .loaded-stats {
+      font-size: 0.85rem;
+      color: #feca57;
+    }
+
+    .vs-badge {
+      background: var(--gradient-fun);
+      color: white;
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-chunky);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .compare-btn {
+      display: block;
+      width: 100%;
+      max-width: 400px;
+      margin: 24px auto;
+      padding: 18px 32px;
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: white;
+      background: var(--gradient-fun);
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      box-shadow: var(--shadow-chunky);
+      transition: all 0.3s ease;
+    }
+
+    .compare-btn:hover:not(:disabled) {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 8px 8px 0 rgba(139, 92, 246, 0.3);
+    }
+
+    .compare-btn:disabled {
+      background: #d1d5db;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* Results section */
+    .results {
+      display: none;
+    }
+
+    .results.visible {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Hero comparison */
+    .hero-comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .mascot-card {
+      background: white;
+      border-radius: 24px;
+      padding: 32px 24px;
+      text-align: center;
+      box-shadow: var(--shadow-chunky);
+      border: 4px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mascot-card.person-a {
+      border-color: var(--coral);
+    }
+
+    .mascot-card.person-b {
+      border-color: var(--orange);
+    }
+
+    .mascot-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      z-index: 0;
+    }
+
+    .mascot-card.person-a::before {
+      background: var(--gradient-coral);
+    }
+
+    .mascot-card.person-b::before {
+      background: var(--gradient-orange);
+    }
+
+    .mascot-emoji {
+      font-size: 5rem;
+      position: relative;
+      z-index: 1;
+      animation: bounce 2s ease-in-out infinite;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .mascot-name {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #1e1b4b;
+      margin: 16px 0 4px;
+    }
+
+    .mascot-title {
+      font-size: 1rem;
+      color: #6b7280;
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+
+    .mascot-trait {
+      background: #f3f4f6;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      color: #4b5563;
+      display: inline-block;
+    }
+
+    /* Compatibility bar */
+    .compatibility-section {
+      background: white;
+      border-radius: 24px;
+      padding: 32px;
+      margin-bottom: 32px;
+      box-shadow: var(--shadow-chunky);
+      text-align: center;
+    }
+
+    .compat-label {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.3rem;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+
+    .compat-score {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 4rem;
+      font-weight: 700;
+      background: var(--gradient-fun);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+
+    .compat-bar {
+      height: 24px;
+      background: #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .compat-fill {
+      height: 100%;
+      background: var(--gradient-fun);
+      border-radius: 12px;
+      transition: width 1s ease-out;
+    }
+
+    .compat-verdict {
+      font-size: 1.2rem;
+      color: #4b5563;
+      font-style: italic;
+    }
+
+    /* Quick stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: var(--shadow-chunky);
+    }
+
+    .stat-card-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-comparison {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .stat-value {
+      text-align: center;
+      flex: 1;
+    }
+
+    .stat-number {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .stat-value.person-a .stat-number { color: var(--coral); }
+    .stat-value.person-b .stat-number { color: var(--orange); }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+
+    .stat-vs {
+      font-weight: 700;
+      color: #d1d5db;
+    }
+
+    /* Same energy / plot twist sections */
+    .section-card {
+      background: white;
+      border-radius: 24px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-chunky);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .section-icon {
+      font-size: 2rem;
+    }
+
+    .section-title {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1e1b4b;
+    }
+
+    .insight-list {
+      list-style: none;
+    }
+
+    .insight-item {
+      padding: 12px 16px;
+      background: #f9fafb;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+      color: #374151;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .insight-item::before {
+      content: attr(data-emoji);
+      font-size: 1.2rem;
+    }
+
+    /* Deep dive collapsible */
+    .deep-dive {
+      border: 3px solid #e5e7eb;
+    }
+
+    .deep-dive-toggle {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .deep-dive-toggle:hover .section-title {
+      color: var(--orange);
+    }
+
+    .toggle-icon {
+      font-size: 1.5rem;
+      color: #9ca3af;
+      transition: transform 0.3s ease;
+    }
+
+    .deep-dive.open .toggle-icon {
+      transform: rotate(180deg);
+    }
+
+    .deep-dive-content {
+      display: none;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 2px solid #f3f4f6;
+    }
+
+    .deep-dive.open .deep-dive-content {
+      display: block;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+
+    .data-table th {
+      text-align: left;
+      padding: 12px;
+      background: #f9fafb;
+      font-weight: 600;
+      color: #6b7280;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .data-table td {
+      padding: 12px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .data-table tr:hover td {
+      background: #fdf4ff;
+    }
+
+    .subsection-title {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #4b5563;
+      margin: 24px 0 12px;
+    }
+
+    /* Confetti */
+    .confetti {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
+      overflow: hidden;
+    }
+
+    .confetti-piece {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      animation: confetti-fall 3s ease-out forwards;
+    }
+
+    @keyframes confetti-fall {
+      0% {
+        opacity: 1;
+        transform: translateY(-100px) rotate(0deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(100vh) rotate(720deg);
+      }
+    }
+
+    /* Share section */
+    .share-section {
+      text-align: center;
+      padding: 32px;
+      background: var(--gradient-fun);
+      border-radius: 24px;
+      margin-top: 32px;
+    }
+
+    .share-title {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.5rem;
+      color: white;
+      margin-bottom: 16px;
+    }
+
+    .share-btn {
+      background: white;
+      color: var(--orange);
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      margin: 0 8px;
+      transition: transform 0.2s ease;
+    }
+
+    .share-btn:hover {
+      transform: scale(1.05);
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 40px;
+      color: #9ca3af;
+      font-size: 0.9rem;
+    }
+
+    .footer a {
+      color: var(--orange);
+      text-decoration: none;
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      .logo { font-size: 2.5rem; }
+      .upload-section { grid-template-columns: 1fr; }
+      .vs-badge { margin: 16px auto; }
+      .hero-comparison { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .mascot-emoji { font-size: 4rem; }
+    }
+
+    /* Hidden file input */
+    .file-input {
+      display: none;
+    }
+
+    /* Name input styling */
+    .upload-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .name-input-wrapper {
+      text-align: center;
+    }
+
+    .name-input {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 600;
+      text-align: center;
+      padding: 12px 20px;
+      border: 3px solid #e5e7eb;
+      border-radius: 12px;
+      background: white;
+      color: #1e1b4b;
+      width: 100%;
+      max-width: 200px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .name-input:focus {
+      outline: none;
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
+
+    .name-input::placeholder {
+      color: #9ca3af;
+      font-weight: 500;
+    }
+
+    /* User labels in results */
+    .user-name-display {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .mascot-card.person-a .user-name-display { color: var(--coral); }
+    .mascot-card.person-b .user-name-display { color: var(--orange); }
+
+    /* Personality description */
+    .mascot-description {
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin-top: 12px;
+      line-height: 1.5;
+      padding: 0 12px;
+    }
+
+    /* Personality traits pills */
+    .trait-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .trait-pill {
+      background: #f3f4f6;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      color: #4b5563;
+      font-weight: 500;
+    }
+
+    .trait-pill.strength { background: #d1fae5; color: #065f46; }
+    .trait-pill.quirk { background: #fef3c7; color: #92400e; }
+    .trait-pill.energy { background: #ede9fe; color: #5b21b6; }
+
+    /* Compatibility dynamics section */
+    .dynamics-section {
+      background: linear-gradient(135deg, #fff5f5 0%, #fff9e6 100%);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 2px solid #e5e7eb;
+    }
+
+    .dynamics-title {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #1e1b4b;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .dynamics-content {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: #374151;
+    }
+
+    .dynamics-content p {
+      margin-bottom: 12px;
+    }
+
+    .dynamics-content strong {
+      color: var(--orange);
+    }
+
+    /* Working style comparison */
+    .style-comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .style-box {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .style-box.person-a { border-left: 4px solid var(--coral); }
+    .style-box.person-b { border-left: 4px solid var(--orange); }
+
+    .style-box-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+
+    .style-box.person-a .style-box-title { color: var(--coral); }
+    .style-box.person-b .style-box-title { color: var(--orange); }
+
+    .style-box-content {
+      font-size: 0.85rem;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    /* Screenshot canvas (hidden) */
+    #screenshotCanvas {
+      display: none;
+    }
+
+    /* Counter display */
+    .counter-section {
+      text-align: center;
+      padding: 16px;
+      margin-top: 24px;
+    }
+
+    .counter-text {
+      font-size: 0.95rem;
+      color: #6b7280;
+    }
+
+    .counter-number {
+      font-family: 'Fredoka', sans-serif;
+      font-weight: 700;
+      background: var(--gradient-fun);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="logo">Claude Codiac</h1>
+      <p class="tagline">Discover your coding soul compatibility</p>
+    </header>
+
+    <section class="upload-section" id="uploadSection">
+      <div class="upload-card">
+        <div class="name-input-wrapper">
+          <input type="text" class="name-input" id="nameInputA" placeholder="Your name" maxlength="20">
+        </div>
+        <div class="drop-zone" id="dropZoneA" data-person="a">
+          <input type="file" class="file-input" id="fileInputA" accept=".html">
+          <div class="drop-zone-prompt">
+            <div class="drop-zone-icon">📊</div>
+            <div class="drop-zone-label">Your report</div>
+            <div class="drop-zone-hint">Drop insights report or click to upload</div>
+          </div>
+          <div class="loaded-info">
+            <div class="drop-zone-icon">✅</div>
+            <div class="loaded-name" id="loadedNameA"></div>
+            <div class="loaded-stats" id="loadedStatsA"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="vs-badge">VS</div>
+
+      <div class="upload-card">
+        <div class="name-input-wrapper">
+          <input type="text" class="name-input" id="nameInputB" placeholder="Their name" maxlength="20">
+        </div>
+        <div class="drop-zone" id="dropZoneB" data-person="b">
+          <input type="file" class="file-input" id="fileInputB" accept=".html">
+          <div class="drop-zone-prompt">
+            <div class="drop-zone-icon">📊</div>
+            <div class="drop-zone-label">Their report</div>
+            <div class="drop-zone-hint">Drop insights report or click to upload</div>
+          </div>
+          <div class="loaded-info">
+            <div class="drop-zone-icon">✅</div>
+            <div class="loaded-name" id="loadedNameB"></div>
+            <div class="loaded-stats" id="loadedStatsB"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <button class="compare-btn" id="compareBtn" disabled>
+      Reveal your cosmic coding connection ✨
+    </button>
+
+    <div class="counter-section" id="counterSection">
+      <p class="counter-text">🔮 <span class="counter-number" id="counterNumber">...</span> coding souls analyzed so far</p>
+    </div>
+
+    <footer class="footer" id="startFooter">
+      <p>Made with ✨ by <a href="https://claude.ai">Claude</a> & <a href="https://github.com/jamditis">Joe Amditis</a></p>
+      <p style="margin-top: 8px;">Upload your <code>/insights</code> reports to compare coding styles</p>
+    </footer>
+
+    <section class="results" id="results">
+      <!-- Filled by JS -->
+    </section>
+  </div>
+
+  <div class="confetti" id="confetti"></div>
+
+  <script>
+    // Mascot definitions with rich personality data
+    const MASCOTS = {
+      beaver: {
+        emoji: '🦫',
+        name: 'The Beaver',
+        title: 'The Builder',
+        trait: 'Builds things from scratch',
+        description: 'Methodical and productive. They see code as raw material waiting to be shaped. Once they start a feature, they don\'t stop until it\'s done.',
+        strengths: ['Productive', 'Focused', 'Persistent'],
+        quirks: ['May over-engineer', 'Loves clean abstractions'],
+        energy: 'Steady and reliable',
+        workStyle: 'Prefers writing new code over reading others\'. Probably has strong opinions about code organization.',
+        collaboration: 'Great for greenfield projects. Might need reminders to pause and review before shipping.'
+      },
+      hawk: {
+        emoji: '🦅',
+        name: 'The Hawk',
+        title: 'The Commander',
+        trait: 'Terminal power user',
+        description: 'The command line is their natural habitat. They see the filesystem as their domain and bash scripts as their army.',
+        strengths: ['Efficient', 'Automation-minded', 'DevOps-savvy'],
+        quirks: ['Allergic to GUIs', 'Has aliases for everything'],
+        energy: 'High-velocity, decisive',
+        workStyle: 'Gets things done with minimal fuss. Probably has a dotfiles repo they\'re weirdly proud of.',
+        collaboration: 'Will automate anything you ask. May accidentally intimidate junior devs with one-liners.'
+      },
+      owl: {
+        emoji: '🦉',
+        name: 'The Owl',
+        title: 'The Architect',
+        trait: 'Reads and plans carefully',
+        description: 'Wisdom over speed. They understand that reading code is harder than writing it, so they take time to truly understand before changing anything.',
+        strengths: ['Thoughtful', 'Strategic', 'Low-bug-rate'],
+        quirks: ['Night coder', 'Diagram enthusiast'],
+        energy: 'Calm and contemplative',
+        workStyle: 'Reads 3x more than they write. Their PRs are small but impactful. Probably drinks a lot of tea.',
+        collaboration: 'Excellent for code review. May need nudging on deadlines—perfection takes time.'
+      },
+      cheetah: {
+        emoji: '🐆',
+        name: 'The Cheetah',
+        title: 'The Sprinter',
+        trait: 'Lightning fast responses',
+        description: 'Speed is their superpower. They think in rapid iterations and ship before others finish reading the ticket.',
+        strengths: ['Fast', 'Iterative', 'Bias for action'],
+        quirks: ['May skip tests', 'Lives in the moment'],
+        energy: 'Explosive bursts',
+        workStyle: 'Ship first, ask questions later. Believes in "move fast and fix things." Probably types over 120 WPM.',
+        collaboration: 'Great for prototypes and hackathons. Pair them with an Owl for balance.'
+      },
+      octopus: {
+        emoji: '🐙',
+        name: 'The Octopus',
+        title: 'The Multi-tasker',
+        trait: 'Runs parallel sessions',
+        description: 'Why do one thing when you can do eight? They juggle multiple Claude sessions like a pro.',
+        strengths: ['Versatile', 'Context-switching', 'Ambitious'],
+        quirks: ['Many tabs open', 'Forgets which terminal is which'],
+        energy: 'Scattered but effective',
+        workStyle: 'Working on three features while waiting for tests to run. Has opinions about window managers.',
+        collaboration: 'Can handle multiple streams of work. May need help prioritizing when things get tight.'
+      },
+      parrot: {
+        emoji: '🦜',
+        name: 'The Parrot',
+        title: 'The Polyglot',
+        trait: 'Speaks many languages',
+        description: 'A true language enthusiast. They see programming languages as different tools in a toolkit, each perfect for something.',
+        strengths: ['Adaptable', 'Cross-domain', 'Always learning'],
+        quirks: ['Strong syntax opinions', 'Has a "favorite" language they won\'t admit'],
+        energy: 'Curious and exploratory',
+        workStyle: 'Can jump between Python, TypeScript, and Rust in a single day. Probably learning a new language right now.',
+        collaboration: 'Perfect for diverse codebases. Will teach you something new every week.'
+      },
+      fox: {
+        emoji: '🦊',
+        name: 'The Fox',
+        title: 'The Debugger',
+        trait: 'Hunts down bugs relentlessly',
+        description: 'Errors don\'t scare them—they intrigue them. Every stack trace is a puzzle, and they won\'t rest until it\'s solved.',
+        strengths: ['Persistent', 'Analytical', 'Fearless'],
+        quirks: ['Console.log everywhere', 'Reads error messages for fun'],
+        energy: 'Relentless determination',
+        workStyle: 'Thrives in chaos. Probably has bookmarks to obscure StackOverflow answers. Secretly enjoys legacy code.',
+        collaboration: 'Call them when things are on fire. They\'ll find the bug nobody else can see.'
+      },
+      bear: {
+        emoji: '🐻',
+        name: 'The Bear',
+        title: 'The Marathoner',
+        trait: 'Codes all day long',
+        description: 'Endurance over sprints. They show up every day, put in the hours, and move mountains one commit at a time.',
+        strengths: ['Consistent', 'High-volume', 'Reliable'],
+        quirks: ['Forgets to take breaks', 'Coffee is life support'],
+        energy: 'Steady and unstoppable',
+        workStyle: 'High message count, high output. Has probably hit the API rate limit more than once.',
+        collaboration: 'The backbone of any team. Remind them to sleep occasionally.'
+      }
+    };
+
+    // User names state
+    let userNameA = '';
+    let userNameB = '';
+
+    const VERDICTS = [
+      { min: 90, text: "Coding soulmates! You two would finish each other's functions." },
+      { min: 75, text: "Strong pair programming potential. Your styles complement each other." },
+      { min: 60, text: "Different approaches, but you'd learn a lot from each other." },
+      { min: 45, text: "Interesting contrast! You'd bring unique perspectives to a team." },
+      { min: 30, text: "Opposites attract? Your workflows couldn't be more different." },
+      { min: 0, text: "Coding from different galaxies. But hey, diversity is strength!" }
+    ];
+
+    // State
+    let dataA = null;
+    let dataB = null;
+
+    // DOM elements
+    const dropZoneA = document.getElementById('dropZoneA');
+    const dropZoneB = document.getElementById('dropZoneB');
+    const fileInputA = document.getElementById('fileInputA');
+    const fileInputB = document.getElementById('fileInputB');
+    const compareBtn = document.getElementById('compareBtn');
+    const resultsSection = document.getElementById('results');
+
+    // Set up drop zones
+    [dropZoneA, dropZoneB].forEach((zone, index) => {
+      const input = index === 0 ? fileInputA : fileInputB;
+      const person = index === 0 ? 'a' : 'b';
+
+      zone.addEventListener('click', () => input.click());
+
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+      });
+
+      zone.addEventListener('dragleave', () => {
+        zone.classList.remove('dragover');
+      });
+
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file) handleFile(file, person);
+      });
+
+      input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) handleFile(file, person);
+      });
+    });
+
+    // Parse insights report HTML
+    function parseInsightsReport(html) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      const data = {
+        messages: 0,
+        lines: { added: 0, removed: 0 },
+        files: 0,
+        days: 0,
+        msgsPerDay: 0,
+        tools: {},
+        languages: {},
+        responseTime: { median: 0, average: 0 },
+        multiClauding: { events: 0, sessions: 0, percent: 0 },
+        timeOfDay: { morning: 0, afternoon: 0, evening: 0, night: 0 },
+        rawHourCounts: null,
+        errors: {},
+        errorTotal: 0,
+        frictionCategories: [],
+        bigWins: []
+      };
+
+      // Parse stats row
+      const statValues = doc.querySelectorAll('.stat-value');
+      statValues.forEach((el, i) => {
+        const text = el.textContent.trim();
+        switch(i) {
+          case 0: data.messages = parseInt(text.replace(/,/g, '')) || 0; break;
+          case 1:
+            const match = text.match(/\+?([\d,]+)\/-?([\d,]+)/);
+            if (match) {
+              data.lines.added = parseInt(match[1].replace(/,/g, '')) || 0;
+              data.lines.removed = parseInt(match[2].replace(/,/g, '')) || 0;
+            }
+            break;
+          case 2: data.files = parseInt(text.replace(/,/g, '')) || 0; break;
+          case 3: data.days = parseInt(text) || 0; break;
+          case 4: data.msgsPerDay = parseFloat(text) || 0; break;
+        }
+      });
+
+      // Parse tool usage (find the "Top Tools Used" chart)
+      const chartCards = doc.querySelectorAll('.chart-card');
+      chartCards.forEach(card => {
+        const title = card.querySelector('.chart-title');
+        if (!title) return;
+        const titleText = title.textContent.trim();
+
+        if (titleText === 'Top Tools Used') {
+          card.querySelectorAll('.bar-row').forEach(row => {
+            const label = row.querySelector('.bar-label')?.textContent.trim();
+            const value = parseInt(row.querySelector('.bar-value')?.textContent.replace(/,/g, '')) || 0;
+            if (label) data.tools[label] = value;
+          });
+        }
+
+        if (titleText === 'Languages') {
+          card.querySelectorAll('.bar-row').forEach(row => {
+            const label = row.querySelector('.bar-label')?.textContent.trim();
+            const value = parseInt(row.querySelector('.bar-value')?.textContent.replace(/,/g, '')) || 0;
+            if (label) data.languages[label] = value;
+          });
+        }
+
+        if (titleText === 'Tool Errors Encountered') {
+          card.querySelectorAll('.bar-row').forEach(row => {
+            const label = row.querySelector('.bar-label')?.textContent.trim();
+            const value = parseInt(row.querySelector('.bar-value')?.textContent.replace(/,/g, '')) || 0;
+            if (label) {
+              data.errors[label] = value;
+              data.errorTotal += value;
+            }
+          });
+        }
+
+        if (titleText.includes('Time of Day')) {
+          card.querySelectorAll('.bar-row').forEach(row => {
+            const label = row.querySelector('.bar-label')?.textContent.trim().toLowerCase();
+            const value = parseInt(row.querySelector('.bar-value')?.textContent.replace(/,/g, '')) || 0;
+            if (label?.includes('morning')) data.timeOfDay.morning = value;
+            if (label?.includes('afternoon')) data.timeOfDay.afternoon = value;
+            if (label?.includes('evening')) data.timeOfDay.evening = value;
+            if (label?.includes('night')) data.timeOfDay.night = value;
+          });
+        }
+      });
+
+      // Parse response time
+      const responseTimeText = doc.body.innerHTML.match(/Median:\s*([\d.]+)s\s*[•·]\s*Average:\s*([\d.]+)s/);
+      if (responseTimeText) {
+        data.responseTime.median = parseFloat(responseTimeText[1]) || 0;
+        data.responseTime.average = parseFloat(responseTimeText[2]) || 0;
+      }
+
+      // Parse multi-clauding
+      const multiClaudingSection = doc.body.innerHTML;
+      const overlapMatch = multiClaudingSection.match(/<div[^>]*style[^>]*>(\d+)<\/div>\s*<div[^>]*>Overlap Events<\/div>/i);
+      const sessionsMatch = multiClaudingSection.match(/<div[^>]*style[^>]*>(\d+)<\/div>\s*<div[^>]*>Sessions Involved<\/div>/i);
+      const percentMatch = multiClaudingSection.match(/<div[^>]*style[^>]*>(\d+)%<\/div>\s*<div[^>]*>Of Messages<\/div>/i);
+
+      if (overlapMatch) data.multiClauding.events = parseInt(overlapMatch[1]) || 0;
+      if (sessionsMatch) data.multiClauding.sessions = parseInt(sessionsMatch[1]) || 0;
+      if (percentMatch) data.multiClauding.percent = parseInt(percentMatch[1]) || 0;
+
+      // Parse rawHourCounts from script
+      const scriptMatch = html.match(/rawHourCounts\s*=\s*(\{[^}]+\})/);
+      if (scriptMatch) {
+        try {
+          data.rawHourCounts = JSON.parse(scriptMatch[1]);
+        } catch (e) {}
+      }
+
+      // Parse friction categories
+      doc.querySelectorAll('.friction-title').forEach(el => {
+        data.frictionCategories.push(el.textContent.trim());
+      });
+
+      // Parse big wins
+      doc.querySelectorAll('.big-win-title').forEach(el => {
+        data.bigWins.push(el.textContent.trim());
+      });
+
+      return data;
+    }
+
+    // Determine mascot based on usage patterns
+    function determineMascot(data) {
+      const totalTools = Object.values(data.tools).reduce((a, b) => a + b, 0) || 1;
+      const editWrite = (data.tools['Edit'] || 0) + (data.tools['Write'] || 0);
+      const bash = data.tools['Bash'] || 0;
+      const read = data.tools['Read'] || 0;
+      const langCount = Object.keys(data.languages).filter(l => data.languages[l] > 100).length;
+      const errorRate = data.errorTotal / totalTools;
+
+      // Check conditions in priority order
+      if (data.multiClauding.percent >= 10) return MASCOTS.octopus;
+      if (data.responseTime.median > 0 && data.responseTime.median < 30) return MASCOTS.cheetah;
+      if (langCount >= 4) return MASCOTS.parrot;
+      if (data.msgsPerDay > 500) return MASCOTS.bear;
+      if (errorRate > 0.1) return MASCOTS.fox;
+      if (editWrite / totalTools > 0.35) return MASCOTS.beaver;
+      if (bash / totalTools > 0.5) return MASCOTS.hawk;
+      if (read / totalTools > 0.15 && (data.timeOfDay.night + data.timeOfDay.evening) > (data.timeOfDay.morning + data.timeOfDay.afternoon)) return MASCOTS.owl;
+
+      // Default based on most prominent behavior
+      if (bash > editWrite) return MASCOTS.hawk;
+      return MASCOTS.beaver;
+    }
+
+    // Calculate compatibility score
+    function calculateCompatibility(a, b) {
+      let score = 0;
+      let weights = { tools: 30, languages: 25, responseTime: 15, timeOfDay: 15, multiClauding: 15 };
+
+      // Tool usage distribution similarity (30%)
+      const allTools = new Set([...Object.keys(a.tools), ...Object.keys(b.tools)]);
+      const totalA = Object.values(a.tools).reduce((sum, v) => sum + v, 0) || 1;
+      const totalB = Object.values(b.tools).reduce((sum, v) => sum + v, 0) || 1;
+      let toolSimilarity = 0;
+      allTools.forEach(tool => {
+        const ratioA = (a.tools[tool] || 0) / totalA;
+        const ratioB = (b.tools[tool] || 0) / totalB;
+        toolSimilarity += 1 - Math.abs(ratioA - ratioB);
+      });
+      toolSimilarity = (toolSimilarity / allTools.size) * weights.tools;
+      score += toolSimilarity;
+
+      // Language overlap (25%)
+      const allLangs = new Set([...Object.keys(a.languages), ...Object.keys(b.languages)]);
+      const sharedLangs = [...allLangs].filter(l => a.languages[l] && b.languages[l]);
+      const langOverlap = (sharedLangs.length / allLangs.size) * weights.languages;
+      score += langOverlap;
+
+      // Response time similarity (15%)
+      if (a.responseTime.median > 0 && b.responseTime.median > 0) {
+        const maxTime = Math.max(a.responseTime.median, b.responseTime.median);
+        const minTime = Math.min(a.responseTime.median, b.responseTime.median);
+        const timeSimilarity = (minTime / maxTime) * weights.responseTime;
+        score += timeSimilarity;
+      } else {
+        score += weights.responseTime * 0.5; // Neutral if missing
+      }
+
+      // Time of day overlap (15%)
+      const totalTimeA = Object.values(a.timeOfDay).reduce((s, v) => s + v, 0) || 1;
+      const totalTimeB = Object.values(b.timeOfDay).reduce((s, v) => s + v, 0) || 1;
+      let timeSimilarity = 0;
+      ['morning', 'afternoon', 'evening', 'night'].forEach(period => {
+        const ratioA = a.timeOfDay[period] / totalTimeA;
+        const ratioB = b.timeOfDay[period] / totalTimeB;
+        timeSimilarity += 1 - Math.abs(ratioA - ratioB);
+      });
+      score += (timeSimilarity / 4) * weights.timeOfDay;
+
+      // Multi-clauding behavior (15%)
+      const multiA = a.multiClauding.percent;
+      const multiB = b.multiClauding.percent;
+      const multiSimilarity = 1 - Math.abs(multiA - multiB) / 100;
+      score += multiSimilarity * weights.multiClauding;
+
+      return Math.round(score);
+    }
+
+    // Generate insights
+    function generateInsights(a, b, nameA, nameB) {
+      const sameEnergy = [];
+      const plotTwist = [];
+      const rawA = nameA || 'Person A';
+      const rawB = nameB || 'Person B';
+      const displayA = `<strong>${rawA}</strong>`;
+      const displayB = `<strong>${rawB}</strong>`;
+
+      // Language overlap
+      const sharedLangs = Object.keys(a.languages).filter(l => b.languages[l]);
+      if (sharedLangs.length > 0) {
+        sameEnergy.push({ emoji: '💻', text: `Both love ${sharedLangs.slice(0, 3).join(', ')}` });
+      }
+
+      // Tool preferences
+      const topToolA = Object.entries(a.tools).sort((x, y) => y[1] - x[1])[0];
+      const topToolB = Object.entries(b.tools).sort((x, y) => y[1] - x[1])[0];
+      if (topToolA && topToolB && topToolA[0] === topToolB[0]) {
+        sameEnergy.push({ emoji: '🔧', text: `${topToolA[0]} is the go-to tool for both` });
+      } else if (topToolA && topToolB) {
+        plotTwist.push({ emoji: '🔀', text: `${displayA} prefers ${topToolA[0]}, ${displayB} prefers ${topToolB[0]}` });
+      }
+
+      // Time of day
+      const peakTimeA = Object.entries(a.timeOfDay).sort((x, y) => y[1] - x[1])[0]?.[0];
+      const peakTimeB = Object.entries(b.timeOfDay).sort((x, y) => y[1] - x[1])[0]?.[0];
+      if (peakTimeA === peakTimeB) {
+        sameEnergy.push({ emoji: '⏰', text: `Both are ${peakTimeA} coders` });
+      } else {
+        plotTwist.push({ emoji: '🌙', text: `${displayA} codes in the ${peakTimeA}, ${displayB} in the ${peakTimeB}` });
+      }
+
+      // Volume
+      const msgDiff = Math.abs(a.msgsPerDay - b.msgsPerDay);
+      if (msgDiff < 100) {
+        sameEnergy.push({ emoji: '📊', text: 'Similar daily coding intensity' });
+      } else {
+        const heavier = a.msgsPerDay > b.msgsPerDay ? displayA : displayB;
+        plotTwist.push({ emoji: '🏋️', text: `${heavier} sends ${Math.round(msgDiff)} more messages per day` });
+      }
+
+      // Multi-clauding
+      if (a.multiClauding.percent > 5 && b.multiClauding.percent > 5) {
+        sameEnergy.push({ emoji: '🐙', text: 'Both run parallel Claude sessions' });
+      } else if (a.multiClauding.percent > 5 || b.multiClauding.percent > 5) {
+        const multi = a.multiClauding.percent > b.multiClauding.percent ? displayA : displayB;
+        plotTwist.push({ emoji: '🔀', text: `${multi} multi-tasks with parallel sessions` });
+      }
+
+      // Error rates
+      const totalToolsA = Object.values(a.tools).reduce((s, v) => s + v, 0) || 1;
+      const totalToolsB = Object.values(b.tools).reduce((s, v) => s + v, 0) || 1;
+      const errorRateA = a.errorTotal / totalToolsA;
+      const errorRateB = b.errorTotal / totalToolsB;
+      if (Math.abs(errorRateA - errorRateB) < 0.02) {
+        sameEnergy.push({ emoji: '🐛', text: 'Similar debugging frequency' });
+      } else {
+        const buggier = errorRateA > errorRateB ? displayA : displayB;
+        plotTwist.push({ emoji: '🐛', text: `${buggier} hits more errors (more adventurous?)` });
+      }
+
+      // Shared friction points
+      const sharedFriction = a.frictionCategories.filter(f =>
+        b.frictionCategories.some(bf => bf.toLowerCase().includes(f.split(' ')[0].toLowerCase()))
+      );
+      if (sharedFriction.length > 0) {
+        sameEnergy.push({ emoji: '😤', text: `Both struggle with ${sharedFriction[0].split(' ').slice(0, 3).join(' ')}...` });
+      }
+
+      return { sameEnergy: sameEnergy.slice(0, 5), plotTwist: plotTwist.slice(0, 5) };
+    }
+
+    // Handle file upload
+    function handleFile(file, person) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const html = e.target.result;
+        const data = parseInsightsReport(html);
+
+        if (person === 'a') {
+          dataA = data;
+          dropZoneA.classList.add('loaded');
+          document.getElementById('loadedNameA').textContent = file.name;
+          document.getElementById('loadedStatsA').textContent = `${data.messages.toLocaleString()} messages over ${data.days} days`;
+        } else {
+          dataB = data;
+          dropZoneB.classList.add('loaded');
+          document.getElementById('loadedNameB').textContent = file.name;
+          document.getElementById('loadedStatsB').textContent = `${data.messages.toLocaleString()} messages over ${data.days} days`;
+        }
+
+        updateCompareButton();
+      };
+      reader.readAsText(file);
+    }
+
+    function updateCompareButton() {
+      compareBtn.disabled = !(dataA && dataB);
+    }
+
+    // Create confetti
+    function createConfetti() {
+      const container = document.getElementById('confetti');
+      container.innerHTML = '';
+      const colors = ['#ff6b6b', '#ff9f43', '#feca57', '#ee5a9e', '#1dd1a1', '#ff4757'];
+
+      for (let i = 0; i < 100; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left = Math.random() * 100 + '%';
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDelay = Math.random() * 0.5 + 's';
+        piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+        container.appendChild(piece);
+      }
+
+      setTimeout(() => container.innerHTML = '', 4000);
+    }
+
+    // Generate personality dynamics narrative
+    function generateDynamicsNarrative(mascotA, mascotB, nameA, nameB, compatibility, a, b) {
+      const rawA = nameA || 'Person A';
+      const rawB = nameB || 'Person B';
+      const displayA = `<strong>${rawA}</strong>`;
+      const displayB = `<strong>${rawB}</strong>`;
+
+      let intro = '';
+      let workStyle = '';
+      let prediction = '';
+
+      // Compatibility-based intro
+      if (compatibility >= 80) {
+        intro = `${displayA} and ${displayB} are practically the same developer in two bodies. Their workflows sync up like muscle memory—what one starts, the other could finish.`;
+      } else if (compatibility >= 60) {
+        intro = `${displayA} and ${displayB} have complementary energies. Where one zigs, the other zags, but somehow they end up at the same destination.`;
+      } else if (compatibility >= 40) {
+        intro = `${displayA} and ${displayB} approach code from different angles. It might take adjustment, but there's real potential for learning here.`;
+      } else {
+        intro = `${displayA} and ${displayB} are coding from different planets. That's not bad—it means they'll challenge each other's assumptions constantly.`;
+      }
+
+      // Working style based on mascot combo
+      const mascotKeyA = Object.keys(MASCOTS).find(k => MASCOTS[k] === mascotA);
+      const mascotKeyB = Object.keys(MASCOTS).find(k => MASCOTS[k] === mascotB);
+
+      const combos = {
+        'beaver_owl': `When ${displayA} the Builder teams up with ${displayB} the Architect, magic happens. One sees the vision, the other makes it real.`,
+        'hawk_fox': `${displayA}'s command-line efficiency meets ${displayB}'s debugging instincts. Together, they could automate finding bugs before they happen.`,
+        'cheetah_bear': `Speed meets endurance: ${displayA} sprints while ${displayB} maintains pace. They'd cover more ground together than either could alone.`,
+        'octopus_parrot': `Two explorers! ${displayA} juggles contexts while ${displayB} juggles languages. They probably have 47 browser tabs open between them.`,
+        'same': `Two ${mascotA.title.toLowerCase()}s? They'll either be best friends or constantly argue about the "right way" to do things. No in-between.`
+      };
+
+      const comboKey = mascotKeyA === mascotKeyB ? 'same' :
+        (combos[`${mascotKeyA}_${mascotKeyB}`] ? `${mascotKeyA}_${mascotKeyB}` : `${mascotKeyB}_${mascotKeyA}`);
+      workStyle = combos[comboKey] || `${displayA} (${mascotA.title}) brings ${mascotA.energy.toLowerCase()}, while ${displayB} (${mascotB.title}) brings ${mascotB.energy.toLowerCase()}. It's an interesting mix.`;
+
+      // Prediction based on data patterns
+      const speedDiff = Math.abs(a.responseTime.median - b.responseTime.median);
+      const volumeDiff = Math.abs(a.msgsPerDay - b.msgsPerDay);
+
+      if (speedDiff > 30) {
+        prediction = `Fair warning: ${a.responseTime.median < b.responseTime.median ? displayA : displayB} moves FAST. The other might need to speak up if things are moving too quickly.`;
+      } else if (volumeDiff > 300) {
+        prediction = `${a.msgsPerDay > b.msgsPerDay ? displayA : displayB} is clearly the higher-volume coder. They might need to check in so the other doesn't feel left behind.`;
+      } else if (a.multiClauding.percent > 10 || b.multiClauding.percent > 10) {
+        prediction = `One of them is a serious multi-tasker. Pair programming might require some... focus adjustments.`;
+      } else {
+        prediction = `They seem well-matched in pace and intensity. Should be smooth sailing.`;
+      }
+
+      return { intro, workStyle, prediction };
+    }
+
+    // Render results
+    function renderResults(a, b, mascotA, mascotB, compatibility, insights) {
+      const verdict = VERDICTS.find(v => compatibility >= v.min)?.text || VERDICTS[VERDICTS.length - 1].text;
+      const displayNameA = userNameA || 'Person A';
+      const displayNameB = userNameB || 'Person B';
+      const dynamics = generateDynamicsNarrative(mascotA, mascotB, userNameA, userNameB, compatibility, a, b);
+
+      const html = `
+        <div class="hero-comparison">
+          <div class="mascot-card person-a">
+            <div class="user-name-display">${displayNameA}</div>
+            <div class="mascot-emoji">${mascotA.emoji}</div>
+            <div class="mascot-name">${mascotA.name}</div>
+            <div class="mascot-title">${mascotA.title}</div>
+            <div class="mascot-trait">${mascotA.trait}</div>
+            <div class="trait-pills">
+              ${mascotA.strengths.map(s => `<span class="trait-pill strength">${s}</span>`).join('')}
+              ${mascotA.quirks.slice(0,1).map(q => `<span class="trait-pill quirk">${q}</span>`).join('')}
+            </div>
+            <div class="mascot-description">${mascotA.description}</div>
+          </div>
+          <div class="mascot-card person-b">
+            <div class="user-name-display">${displayNameB}</div>
+            <div class="mascot-emoji">${mascotB.emoji}</div>
+            <div class="mascot-name">${mascotB.name}</div>
+            <div class="mascot-title">${mascotB.title}</div>
+            <div class="mascot-trait">${mascotB.trait}</div>
+            <div class="trait-pills">
+              ${mascotB.strengths.map(s => `<span class="trait-pill strength">${s}</span>`).join('')}
+              ${mascotB.quirks.slice(0,1).map(q => `<span class="trait-pill quirk">${q}</span>`).join('')}
+            </div>
+            <div class="mascot-description">${mascotB.description}</div>
+          </div>
+        </div>
+
+        <div class="compatibility-section">
+          <div class="compat-label">Coding compatibility</div>
+          <div class="compat-score">${compatibility}%</div>
+          <div class="compat-bar">
+            <div class="compat-fill" style="width: ${compatibility}%"></div>
+          </div>
+          <div class="compat-verdict">"${verdict}"</div>
+        </div>
+
+        <div class="dynamics-section">
+          <div class="dynamics-title">🔮 The dynamics</div>
+          <div class="dynamics-content">
+            <p>${dynamics.intro}</p>
+            <p>${dynamics.workStyle}</p>
+            <p><strong>Prediction:</strong> ${dynamics.prediction}</p>
+          </div>
+          <div class="style-comparison">
+            <div class="style-box person-a">
+              <div class="style-box-title">${displayNameA}'s vibe</div>
+              <div class="style-box-content">${mascotA.workStyle}</div>
+            </div>
+            <div class="style-box person-b">
+              <div class="style-box-title">${displayNameB}'s vibe</div>
+              <div class="style-box-content">${mascotB.workStyle}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-title">Daily pace</div>
+            <div class="stat-comparison">
+              <div class="stat-value person-a">
+                <div class="stat-number">${Math.round(a.msgsPerDay)}</div>
+                <div class="stat-label">msgs/day</div>
+              </div>
+              <div class="stat-vs">vs</div>
+              <div class="stat-value person-b">
+                <div class="stat-number">${Math.round(b.msgsPerDay)}</div>
+                <div class="stat-label">msgs/day</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-title">Response speed</div>
+            <div class="stat-comparison">
+              <div class="stat-value person-a">
+                <div class="stat-number">${a.responseTime.median || '?'}s</div>
+                <div class="stat-label">median</div>
+              </div>
+              <div class="stat-vs">vs</div>
+              <div class="stat-value person-b">
+                <div class="stat-number">${b.responseTime.median || '?'}s</div>
+                <div class="stat-label">median</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-title">Languages used</div>
+            <div class="stat-comparison">
+              <div class="stat-value person-a">
+                <div class="stat-number">${Object.keys(a.languages).length}</div>
+                <div class="stat-label">languages</div>
+              </div>
+              <div class="stat-vs">vs</div>
+              <div class="stat-value person-b">
+                <div class="stat-number">${Object.keys(b.languages).length}</div>
+                <div class="stat-label">languages</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-title">Code volume</div>
+            <div class="stat-comparison">
+              <div class="stat-value person-a">
+                <div class="stat-number">${(a.lines.added / 1000).toFixed(0)}k</div>
+                <div class="stat-label">lines added</div>
+              </div>
+              <div class="stat-vs">vs</div>
+              <div class="stat-value person-b">
+                <div class="stat-number">${(b.lines.added / 1000).toFixed(0)}k</div>
+                <div class="stat-label">lines added</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        ${insights.sameEnergy.length > 0 ? `
+        <div class="section-card">
+          <div class="section-header">
+            <span class="section-icon">✨</span>
+            <h2 class="section-title">Same energy</h2>
+          </div>
+          <ul class="insight-list">
+            ${insights.sameEnergy.map(i => `<li class="insight-item" data-emoji="${i.emoji}">${i.text}</li>`).join('')}
+          </ul>
+        </div>
+        ` : ''}
+
+        ${insights.plotTwist.length > 0 ? `
+        <div class="section-card">
+          <div class="section-header">
+            <span class="section-icon">🔄</span>
+            <h2 class="section-title">Plot twist</h2>
+          </div>
+          <ul class="insight-list">
+            ${insights.plotTwist.map(i => `<li class="insight-item" data-emoji="${i.emoji}">${i.text}</li>`).join('')}
+          </ul>
+        </div>
+        ` : ''}
+
+        <div class="section-card deep-dive" id="deepDive">
+          <button class="deep-dive-toggle" onclick="toggleDeepDive()">
+            <div class="section-header" style="margin-bottom: 0;">
+              <span class="section-icon">📊</span>
+              <h2 class="section-title">Deep dive</h2>
+            </div>
+            <span class="toggle-icon">▼</span>
+          </button>
+          <div class="deep-dive-content">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>${displayNameA}</th>
+                  <th>${displayNameB}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Total messages</td>
+                  <td>${a.messages.toLocaleString()}</td>
+                  <td>${b.messages.toLocaleString()}</td>
+                </tr>
+                <tr>
+                  <td>Files touched</td>
+                  <td>${a.files.toLocaleString()}</td>
+                  <td>${b.files.toLocaleString()}</td>
+                </tr>
+                <tr>
+                  <td>Lines added</td>
+                  <td>${a.lines.added.toLocaleString()}</td>
+                  <td>${b.lines.added.toLocaleString()}</td>
+                </tr>
+                <tr>
+                  <td>Lines removed</td>
+                  <td>${a.lines.removed.toLocaleString()}</td>
+                  <td>${b.lines.removed.toLocaleString()}</td>
+                </tr>
+                <tr>
+                  <td>Active days</td>
+                  <td>${a.days}</td>
+                  <td>${b.days}</td>
+                </tr>
+                <tr>
+                  <td>Multi-clauding %</td>
+                  <td>${a.multiClauding.percent}%</td>
+                  <td>${b.multiClauding.percent}%</td>
+                </tr>
+                <tr>
+                  <td>Error rate</td>
+                  <td>${((a.errorTotal / (Object.values(a.tools).reduce((s,v)=>s+v,0)||1)) * 100).toFixed(1)}%</td>
+                  <td>${((b.errorTotal / (Object.values(b.tools).reduce((s,v)=>s+v,0)||1)) * 100).toFixed(1)}%</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3 class="subsection-title">Top tools comparison</h3>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tool</th>
+                  <th>${displayNameA}</th>
+                  <th>${displayNameB}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${(() => {
+                  const allTools = new Set([...Object.keys(a.tools), ...Object.keys(b.tools)]);
+                  return [...allTools].slice(0, 8).map(tool => `
+                    <tr>
+                      <td>${tool}</td>
+                      <td>${(a.tools[tool] || 0).toLocaleString()}</td>
+                      <td>${(b.tools[tool] || 0).toLocaleString()}</td>
+                    </tr>
+                  `).join('');
+                })()}
+              </tbody>
+            </table>
+
+            <h3 class="subsection-title">Languages comparison</h3>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Language</th>
+                  <th>${displayNameA}</th>
+                  <th>${displayNameB}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${(() => {
+                  const allLangs = new Set([...Object.keys(a.languages), ...Object.keys(b.languages)]);
+                  return [...allLangs].slice(0, 8).map(lang => `
+                    <tr>
+                      <td>${lang}</td>
+                      <td>${(a.languages[lang] || 0).toLocaleString()}</td>
+                      <td>${(b.languages[lang] || 0).toLocaleString()}</td>
+                    </tr>
+                  `).join('');
+                })()}
+              </tbody>
+            </table>
+
+            ${a.frictionCategories.length > 0 || b.frictionCategories.length > 0 ? `
+            <h3 class="subsection-title">Pain points</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div>
+                <strong style="color: var(--coral);">${displayNameA}</strong>
+                <ul style="margin-top: 8px; padding-left: 20px; color: #6b7280;">
+                  ${a.frictionCategories.map(f => `<li>${f}</li>`).join('')}
+                </ul>
+              </div>
+              <div>
+                <strong style="color: var(--orange);">${displayNameB}</strong>
+                <ul style="margin-top: 8px; padding-left: 20px; color: #6b7280;">
+                  ${b.frictionCategories.map(f => `<li>${f}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <div class="share-section">
+          <h2 class="share-title">Share your cosmic connection!</h2>
+          <button class="share-btn" onclick="shareResults()">🔗 Copy link</button>
+          <button class="share-btn" onclick="copyResults()">📋 Copy text</button>
+          <button class="share-btn" onclick="takeScreenshot()">📸 Screenshot</button>
+        </div>
+
+        <footer class="footer">
+          <p>Made with ✨ by <a href="https://claude.ai">Claude</a> & <a href="https://github.com/jamditis">Joe Amditis</a></p>
+          <p style="margin-top: 8px;">Upload your <code>/insights</code> reports to compare coding styles</p>
+        </footer>
+      `;
+
+      resultsSection.innerHTML = html;
+      resultsSection.classList.add('visible');
+
+      // Hide start footer and counter
+      const startFooter = document.getElementById('startFooter');
+      const counterSection = document.getElementById('counterSection');
+      if (startFooter) startFooter.style.display = 'none';
+      if (counterSection) counterSection.style.display = 'none';
+
+      // Smooth scroll to results
+      resultsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function toggleDeepDive() {
+      document.getElementById('deepDive').classList.toggle('open');
+    }
+
+    // Worker API configuration
+    const API_BASE = 'https://codiac-share.jamditis.workers.dev';
+    let currentShareId = null;
+
+    async function shareResults() {
+      // Comparison is already saved - just copy the current URL
+      const shareBtn = document.querySelector('.share-btn');
+
+      if (currentShareId) {
+        const shareUrl = `${window.location.origin}${window.location.pathname}?compare=${currentShareId}`;
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          shareBtn.textContent = '✅ Link copied!';
+          setTimeout(() => {
+            shareBtn.textContent = '🔗 Copy link';
+          }, 2000);
+        } catch (error) {
+          // Fallback for older browsers
+          prompt('Copy this link:', shareUrl);
+        }
+      } else {
+        shareBtn.textContent = '❌ Not saved';
+        setTimeout(() => {
+          shareBtn.textContent = '🔗 Copy link';
+        }, 2000);
+      }
+    }
+
+    function copyResults() {
+      const mascotA = determineMascot(dataA);
+      const mascotB = determineMascot(dataB);
+      const compatibility = calculateCompatibility(dataA, dataB);
+      const verdict = VERDICTS.find(v => compatibility >= v.min)?.text;
+
+      const shareUrl = currentShareId
+        ? `${window.location.origin}${window.location.pathname}?compare=${currentShareId}`
+        : window.location.href;
+
+      const text = `🔮 Claude Codiac Results 🔮
+
+${mascotA.emoji} ${mascotA.title} vs ${mascotB.emoji} ${mascotB.title}
+
+Compatibility: ${compatibility}%
+"${verdict}"
+
+Compare your coding souls at: ${shareUrl}`;
+
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Copied to clipboard!');
+      });
+    }
+
+    function takeScreenshot() {
+      alert('Tip: Use your browser\'s screenshot tool or press Cmd/Ctrl+Shift+4 to capture the results!');
+    }
+
+    // Load shared comparison from URL
+    async function loadSharedComparison(shareId) {
+      const uploadSection = document.getElementById('uploadSection');
+      const resultsSection = document.getElementById('results');
+
+      // Show loading state
+      uploadSection.innerHTML = `
+        <div style="text-align: center; padding: 60px; width: 100%; grid-column: 1 / -1;">
+          <div style="font-size: 3rem; margin-bottom: 16px;">🔮</div>
+          <div style="font-size: 1.2rem; color: #6b7280;">Loading shared comparison...</div>
+        </div>
+      `;
+      compareBtn.style.display = 'none';
+
+      try {
+        const response = await fetch(`${API_BASE}/api/share/${shareId}`);
+        if (!response.ok) throw new Error('Not found');
+
+        const data = await response.json();
+        currentShareId = shareId;
+
+        // Render shared results directly
+        renderSharedResults(data);
+
+      } catch (error) {
+        uploadSection.innerHTML = `
+          <div style="text-align: center; padding: 60px; width: 100%; grid-column: 1 / -1;">
+            <div style="font-size: 3rem; margin-bottom: 16px;">😢</div>
+            <div style="font-size: 1.2rem; color: #991b1b; margin-bottom: 16px;">Comparison not found</div>
+            <a href="${window.location.pathname}" style="color: var(--orange); font-weight: 600;">Create your own comparison →</a>
+          </div>
+        `;
+      }
+    }
+
+    // Render shared comparison (no raw data, just the summary)
+    function renderSharedResults(data) {
+      const mascotA = MASCOTS[data.user1.mascot] || MASCOTS.beaver;
+      const mascotB = MASCOTS[data.user2.mascot] || MASCOTS.beaver;
+      const compatibility = data.compatibility.score;
+      const verdict = data.compatibility.verdict;
+      const u1 = data.user1.stats;
+      const u2 = data.user2.stats;
+      const displayNameA = data.user1.displayName || 'Person A';
+      const displayNameB = data.user2.displayName || 'Person B';
+
+      const html = `
+        <div class="hero-comparison">
+          <div class="mascot-card person-a">
+            <div class="user-name-display">${displayNameA}</div>
+            <div class="mascot-emoji">${data.user1.emoji}</div>
+            <div class="mascot-name">${data.user1.name}</div>
+            <div class="mascot-title">${mascotA.title}</div>
+            <div class="mascot-trait">${mascotA.trait}</div>
+            <div class="trait-pills">
+              ${mascotA.strengths.map(s => `<span class="trait-pill strength">${s}</span>`).join('')}
+              ${mascotA.quirks.slice(0,1).map(q => `<span class="trait-pill quirk">${q}</span>`).join('')}
+            </div>
+            <div class="mascot-description">${mascotA.description}</div>
+          </div>
+          <div class="mascot-card person-b">
+            <div class="user-name-display">${displayNameB}</div>
+            <div class="mascot-emoji">${data.user2.emoji}</div>
+            <div class="mascot-name">${data.user2.name}</div>
+            <div class="mascot-title">${mascotB.title}</div>
+            <div class="mascot-trait">${mascotB.trait}</div>
+            <div class="trait-pills">
+              ${mascotB.strengths.map(s => `<span class="trait-pill strength">${s}</span>`).join('')}
+              ${mascotB.quirks.slice(0,1).map(q => `<span class="trait-pill quirk">${q}</span>`).join('')}
+            </div>
+            <div class="mascot-description">${mascotB.description}</div>
+          </div>
+        </div>
+
+        <div class="compatibility-section">
+          <div class="compat-label">Coding compatibility</div>
+          <div class="compat-score">${compatibility}%</div>
+          <div class="compat-bar">
+            <div class="compat-fill" style="width: ${compatibility}%"></div>
+          </div>
+          <div class="compat-verdict">"${verdict}"</div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-title">Daily pace</div>
+            <div class="stat-comparison">
+              <div class="stat-value person-a">
+                <div class="stat-number">${Math.round(u1.msgsPerDay)}</div>
+                <div class="stat-label">msgs/day</div>
+              </div>
+              <div class="stat-vs">vs</div>
+              <div class="stat-value person-b">
+                <div class="stat-number">${Math.round(u2.msgsPerDay)}</div>
+                <div class="stat-label">msgs/day</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-title">Response speed</div>
+            <div class="stat-comparison">
+              <div class="stat-value person-a">
+                <div class="stat-number">${u1.responseTimeMedian || '?'}s</div>
+                <div class="stat-label">median</div>
+              </div>
+              <div class="stat-vs">vs</div>
+              <div class="stat-value person-b">
+                <div class="stat-number">${u2.responseTimeMedian || '?'}s</div>
+                <div class="stat-label">median</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-title">Languages used</div>
+            <div class="stat-comparison">
+              <div class="stat-value person-a">
+                <div class="stat-number">${u1.languageCount}</div>
+                <div class="stat-label">languages</div>
+              </div>
+              <div class="stat-vs">vs</div>
+              <div class="stat-value person-b">
+                <div class="stat-number">${u2.languageCount}</div>
+                <div class="stat-label">languages</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-title">Code volume</div>
+            <div class="stat-comparison">
+              <div class="stat-value person-a">
+                <div class="stat-number">${(u1.linesAdded / 1000).toFixed(0)}k</div>
+                <div class="stat-label">lines added</div>
+              </div>
+              <div class="stat-vs">vs</div>
+              <div class="stat-value person-b">
+                <div class="stat-number">${(u2.linesAdded / 1000).toFixed(0)}k</div>
+                <div class="stat-label">lines added</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        ${data.compatibility.sameEnergy?.length > 0 ? `
+        <div class="section-card">
+          <div class="section-header">
+            <span class="section-icon">✨</span>
+            <h2 class="section-title">Same energy</h2>
+          </div>
+          <ul class="insight-list">
+            ${data.compatibility.sameEnergy.map(text => `<li class="insight-item" data-emoji="✨">${text}</li>`).join('')}
+          </ul>
+        </div>
+        ` : ''}
+
+        ${data.compatibility.plotTwists?.length > 0 ? `
+        <div class="section-card">
+          <div class="section-header">
+            <span class="section-icon">🔄</span>
+            <h2 class="section-title">Plot twist</h2>
+          </div>
+          <ul class="insight-list">
+            ${data.compatibility.plotTwists.map(text => `<li class="insight-item" data-emoji="🔄">${text}</li>`).join('')}
+          </ul>
+        </div>
+        ` : ''}
+
+        <div class="share-section">
+          <h2 class="share-title">Try it yourself!</h2>
+          <a href="${window.location.pathname}" class="share-btn" style="text-decoration: none; display: inline-block;">🔮 Compare your reports</a>
+        </div>
+
+        <footer class="footer">
+          <p>Made with ✨ by <a href="https://claude.ai">Claude</a> & <a href="https://github.com/jamditis">Joe Amditis</a></p>
+          <p style="margin-top: 8px;">Upload your <code>/insights</code> reports to compare coding styles</p>
+        </footer>
+      `;
+
+      document.getElementById('uploadSection').style.display = 'none';
+      resultsSection.innerHTML = html;
+      resultsSection.classList.add('visible');
+      createConfetti();
+    }
+
+    // Fetch and display counter
+    async function loadCounter() {
+      try {
+        const response = await fetch(`${API_BASE}/api/stats`);
+        if (response.ok) {
+          const data = await response.json();
+          const counterEl = document.getElementById('counterNumber');
+          if (counterEl && data.count !== undefined) {
+            // Animate the number
+            const target = data.count * 2; // Each comparison = 2 souls
+            counterEl.textContent = target.toLocaleString();
+          }
+        }
+      } catch (e) {
+        console.log('Counter fetch failed:', e);
+      }
+    }
+
+    // Check URL for shared comparison on load
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const shareId = params.get('compare');
+      if (shareId && /^[A-Za-z0-9_-]{8}$/.test(shareId)) {
+        loadSharedComparison(shareId);
+      }
+      // Load counter
+      loadCounter();
+    });
+
+    // Name input listeners
+    const nameInputA = document.getElementById('nameInputA');
+    const nameInputB = document.getElementById('nameInputB');
+
+    nameInputA.addEventListener('input', (e) => {
+      userNameA = e.target.value.trim();
+    });
+
+    nameInputB.addEventListener('input', (e) => {
+      userNameB = e.target.value.trim();
+    });
+
+    // Compare button click
+    compareBtn.addEventListener('click', async () => {
+      if (!dataA || !dataB) return;
+
+      // Capture names from inputs
+      userNameA = nameInputA.value.trim();
+      userNameB = nameInputB.value.trim();
+
+      const mascotA = determineMascot(dataA);
+      const mascotB = determineMascot(dataB);
+      const compatibility = calculateCompatibility(dataA, dataB);
+      const insights = generateInsights(dataA, dataB, userNameA, userNameB);
+
+      // Show loading state
+      compareBtn.textContent = '🔮 Generating your reading...';
+      compareBtn.disabled = true;
+
+      // Auto-save comparison and get share ID
+      const shareId = await autoSaveComparison(mascotA, mascotB, compatibility, insights);
+
+      createConfetti();
+      renderResults(dataA, dataB, mascotA, mascotB, compatibility, insights);
+
+      // Update URL with share ID if save succeeded
+      if (shareId) {
+        window.history.pushState({}, '', `?compare=${shareId}`);
+        currentShareId = shareId;
+      }
+
+      // Reset button
+      compareBtn.textContent = 'Reveal your cosmic coding connection ✨';
+      compareBtn.disabled = false;
+    });
+
+    // Auto-save comparison and return share ID
+    async function autoSaveComparison(mascotA, mascotB, compatibility, insights) {
+      const displayNameA = userNameA || 'Person A';
+      const displayNameB = userNameB || 'Person B';
+      const verdict = VERDICTS.find(v => compatibility >= v.min)?.text;
+
+      const shareData = {
+        user1: {
+          mascot: Object.keys(MASCOTS).find(k => MASCOTS[k] === mascotA) || 'beaver',
+          displayName: displayNameA,
+          name: mascotA.name,
+          emoji: mascotA.emoji,
+          stats: {
+            messages: dataA.messages,
+            msgsPerDay: dataA.msgsPerDay,
+            linesAdded: dataA.lines.added,
+            responseTimeMedian: dataA.responseTime.median,
+            multiClaudingPercent: dataA.multiClauding.percent,
+            languageCount: Object.keys(dataA.languages).length,
+            topLanguages: Object.keys(dataA.languages).slice(0, 3)
+          }
+        },
+        user2: {
+          mascot: Object.keys(MASCOTS).find(k => MASCOTS[k] === mascotB) || 'beaver',
+          displayName: displayNameB,
+          name: mascotB.name,
+          emoji: mascotB.emoji,
+          stats: {
+            messages: dataB.messages,
+            msgsPerDay: dataB.msgsPerDay,
+            linesAdded: dataB.lines.added,
+            responseTimeMedian: dataB.responseTime.median,
+            multiClaudingPercent: dataB.multiClauding.percent,
+            languageCount: Object.keys(dataB.languages).length,
+            topLanguages: Object.keys(dataB.languages).slice(0, 3)
+          }
+        },
+        compatibility: {
+          score: compatibility,
+          verdict: verdict,
+          sameEnergy: insights.sameEnergy.map(i => i.text),
+          plotTwists: insights.plotTwist.map(i => i.text)
+        }
+      };
+
+      try {
+        const response = await fetch(`${API_BASE}/api/share`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(shareData)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          return result.id;
+        }
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      }
+      return null;
+    }
+
+    // Screenshot generation with Canvas
+    async function takeScreenshot() {
+      const mascotA = determineMascot(dataA);
+      const mascotB = determineMascot(dataB);
+      const compatibility = calculateCompatibility(dataA, dataB);
+      const verdict = VERDICTS.find(v => compatibility >= v.min)?.text || '';
+      const displayNameA = userNameA || 'Person A';
+      const displayNameB = userNameB || 'Person B';
+
+      // Create canvas
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Card dimensions (optimized for social sharing)
+      const width = 1080;
+      const height = 1350;
+      canvas.width = width;
+      canvas.height = height;
+
+      // Background gradient
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#fdf4ff');
+      gradient.addColorStop(0.5, '#f0f9ff');
+      gradient.addColorStop(1, '#f0fdf4');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      // Header background
+      const headerGradient = ctx.createLinearGradient(0, 0, width, 0);
+      headerGradient.addColorStop(0, '#ff6b6b');
+      headerGradient.addColorStop(0.5, '#ff9f43');
+      headerGradient.addColorStop(1, '#feca57');
+      ctx.fillStyle = headerGradient;
+      ctx.beginPath();
+      ctx.roundRect(40, 40, width - 80, 140, 24);
+      ctx.fill();
+
+      // Title
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 52px Fredoka, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🔮 Claude Codiac', width / 2, 130);
+
+      // Mascot cards background
+      const cardY = 220;
+      const cardWidth = 460;
+      const cardHeight = 380;
+
+      // Person A card
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.roundRect(60, cardY, cardWidth, cardHeight, 24);
+      ctx.fill();
+      ctx.strokeStyle = '#ff6b6b';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // Person B card
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.roundRect(width - 60 - cardWidth, cardY, cardWidth, cardHeight, 24);
+      ctx.fill();
+      ctx.strokeStyle = '#ff9f43';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // Person A content
+      ctx.fillStyle = '#ff6b6b';
+      ctx.font = 'bold 24px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(displayNameA, 60 + cardWidth / 2, cardY + 45);
+      ctx.font = '80px serif';
+      ctx.fillStyle = '#1e1b4b';
+      ctx.fillText(mascotA.emoji, 60 + cardWidth / 2, cardY + 150);
+      ctx.font = 'bold 32px Fredoka, sans-serif';
+      ctx.fillText(mascotA.title, 60 + cardWidth / 2, cardY + 210);
+      ctx.font = '20px Inter, sans-serif';
+      ctx.fillStyle = '#6b7280';
+      ctx.fillText(mascotA.trait, 60 + cardWidth / 2, cardY + 250);
+
+      // Person A traits
+      ctx.font = '16px Inter, sans-serif';
+      const traitsA = mascotA.strengths.slice(0, 2).join(' • ');
+      ctx.fillStyle = '#065f46';
+      ctx.fillText(traitsA, 60 + cardWidth / 2, cardY + 290);
+      ctx.fillStyle = '#92400e';
+      ctx.fillText(mascotA.quirks[0] || '', 60 + cardWidth / 2, cardY + 320);
+
+      // Person B content
+      ctx.fillStyle = '#ff9f43';
+      ctx.font = 'bold 24px Inter, sans-serif';
+      ctx.fillText(displayNameB, width - 60 - cardWidth / 2, cardY + 45);
+      ctx.font = '80px serif';
+      ctx.fillStyle = '#1e1b4b';
+      ctx.fillText(mascotB.emoji, width - 60 - cardWidth / 2, cardY + 150);
+      ctx.font = 'bold 32px Fredoka, sans-serif';
+      ctx.fillText(mascotB.title, width - 60 - cardWidth / 2, cardY + 210);
+      ctx.font = '20px Inter, sans-serif';
+      ctx.fillStyle = '#6b7280';
+      ctx.fillText(mascotB.trait, width - 60 - cardWidth / 2, cardY + 250);
+
+      // Person B traits
+      ctx.font = '16px Inter, sans-serif';
+      const traitsB = mascotB.strengths.slice(0, 2).join(' • ');
+      ctx.fillStyle = '#065f46';
+      ctx.fillText(traitsB, width - 60 - cardWidth / 2, cardY + 290);
+      ctx.fillStyle = '#92400e';
+      ctx.fillText(mascotB.quirks[0] || '', width - 60 - cardWidth / 2, cardY + 320);
+
+      // VS badge
+      const vsGradient = ctx.createLinearGradient(width/2 - 40, cardY + cardHeight/2 - 40, width/2 + 40, cardY + cardHeight/2 + 40);
+      vsGradient.addColorStop(0, '#ff6b6b');
+      vsGradient.addColorStop(1, '#ff9f43');
+      ctx.fillStyle = vsGradient;
+      ctx.beginPath();
+      ctx.arc(width / 2, cardY + cardHeight / 2, 45, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 32px Fredoka, sans-serif';
+      ctx.fillText('VS', width / 2, cardY + cardHeight / 2 + 12);
+
+      // Compatibility section
+      const compatY = cardY + cardHeight + 60;
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.roundRect(60, compatY, width - 120, 220, 24);
+      ctx.fill();
+
+      // Compatibility text
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '24px Fredoka, sans-serif';
+      ctx.fillText('Coding compatibility', width / 2, compatY + 50);
+
+      // Score
+      ctx.font = 'bold 96px Fredoka, sans-serif';
+      const scoreGradient = ctx.createLinearGradient(width/2 - 100, compatY + 80, width/2 + 100, compatY + 160);
+      scoreGradient.addColorStop(0, '#ff6b6b');
+      scoreGradient.addColorStop(0.5, '#ff9f43');
+      scoreGradient.addColorStop(1, '#feca57');
+      ctx.fillStyle = scoreGradient;
+      ctx.fillText(`${compatibility}%`, width / 2, compatY + 140);
+
+      // Verdict
+      ctx.fillStyle = '#4b5563';
+      ctx.font = 'italic 22px Inter, sans-serif';
+      const wrappedVerdict = verdict.length > 60 ? verdict.substring(0, 57) + '...' : verdict;
+      ctx.fillText(`"${wrappedVerdict}"`, width / 2, compatY + 190);
+
+      // Stats summary
+      const statsY = compatY + 260;
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.roundRect(60, statsY, width - 120, 160, 24);
+      ctx.fill();
+
+      // Quick stats
+      ctx.font = 'bold 18px Inter, sans-serif';
+      ctx.fillStyle = '#6b7280';
+      const statsLabels = ['Daily pace', 'Response speed', 'Languages'];
+      const statsX = [180, width/2, width - 180];
+      statsLabels.forEach((label, i) => {
+        ctx.fillText(label, statsX[i], statsY + 40);
+      });
+
+      // Stats values
+      ctx.font = 'bold 28px Fredoka, sans-serif';
+      const statsValuesA = [`${Math.round(dataA.msgsPerDay)}`, `${dataA.responseTime.median}s`, `${Object.keys(dataA.languages).length}`];
+      const statsValuesB = [`${Math.round(dataB.msgsPerDay)}`, `${dataB.responseTime.median}s`, `${Object.keys(dataB.languages).length}`];
+
+      statsValuesA.forEach((val, i) => {
+        ctx.fillStyle = '#ff6b6b';
+        ctx.fillText(val, statsX[i] - 50, statsY + 90);
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '24px Inter, sans-serif';
+        ctx.fillText('vs', statsX[i], statsY + 90);
+        ctx.fillStyle = '#ff9f43';
+        ctx.font = 'bold 28px Fredoka, sans-serif';
+        ctx.fillText(statsValuesB[i], statsX[i] + 50, statsY + 90);
+      });
+
+      // Labels under stats
+      ctx.font = '14px Inter, sans-serif';
+      ctx.fillStyle = '#9ca3af';
+      statsLabels.forEach((_, i) => {
+        ctx.fillStyle = '#ff6b6b';
+        ctx.fillText(displayNameA.substring(0, 8), statsX[i] - 50, statsY + 115);
+        ctx.fillStyle = '#ff9f43';
+        ctx.fillText(displayNameB.substring(0, 8), statsX[i] + 50, statsY + 115);
+      });
+
+      // Footer/CTA
+      const footerY = height - 100;
+      const footerGradient = ctx.createLinearGradient(0, footerY, width, height);
+      footerGradient.addColorStop(0, '#ff6b6b');
+      footerGradient.addColorStop(0.5, '#ff9f43');
+      footerGradient.addColorStop(1, '#feca57');
+      ctx.fillStyle = footerGradient;
+      ctx.beginPath();
+      ctx.roundRect(40, footerY, width - 80, 60, 16);
+      ctx.fill();
+
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 24px Inter, sans-serif';
+      ctx.fillText('🔮 Get yours at codiac.amditis.tech', width / 2, footerY + 40);
+
+      // Download the image
+      const link = document.createElement('a');
+      const fileName = `codiac-${displayNameA.toLowerCase().replace(/\s+/g, '-')}-vs-${displayNameB.toLowerCase().replace(/\s+/g, '-')}.png`;
+      link.download = fileName;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      // Show success message
+      const screenshotBtn = document.querySelector('.share-btn:nth-child(3)');
+      if (screenshotBtn) {
+        const originalText = screenshotBtn.textContent;
+        screenshotBtn.textContent = '✅ Downloaded!';
+        setTimeout(() => {
+          screenshotBtn.textContent = originalText;
+        }, 2000);
+      }
+    }
+  </script>
+</body>
+</html>
