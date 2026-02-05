@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Claude Code Insights</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; color: #334155; line-height: 1.65; padding: 48px 24px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 32px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+    h2 { font-size: 20px; font-weight: 600; color: #0f172a; margin-top: 48px; margin-bottom: 16px; }
+    .subtitle { color: #64748b; font-size: 15px; margin-bottom: 32px; }
+    .nav-toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 32px 0; padding: 16px; background: white; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .nav-toc a { font-size: 12px; color: #64748b; text-decoration: none; padding: 6px 12px; border-radius: 6px; background: #f1f5f9; transition: all 0.15s; }
+    .nav-toc a:hover { background: #e2e8f0; color: #334155; }
+    .stats-row { display: flex; gap: 24px; margin-bottom: 40px; padding: 20px 0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat-value { font-size: 24px; font-weight: 700; color: #0f172a; }
+    .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; }
+    .at-a-glance { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1px solid #f59e0b; border-radius: 12px; padding: 20px 24px; margin-bottom: 32px; }
+    .glance-title { font-size: 16px; font-weight: 700; color: #92400e; margin-bottom: 16px; }
+    .glance-sections { display: flex; flex-direction: column; gap: 12px; }
+    .glance-section { font-size: 14px; color: #78350f; line-height: 1.6; }
+    .glance-section strong { color: #92400e; }
+    .see-more { color: #b45309; text-decoration: none; font-size: 13px; white-space: nowrap; }
+    .see-more:hover { text-decoration: underline; }
+    .project-areas { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+    .project-area { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
+    .area-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .area-name { font-weight: 600; font-size: 15px; color: #0f172a; }
+    .area-count { font-size: 12px; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; }
+    .area-desc { font-size: 14px; color: #475569; line-height: 1.5; }
+    .narrative { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+    .narrative p { margin-bottom: 12px; font-size: 14px; color: #475569; line-height: 1.7; }
+    .key-insight { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-top: 12px; font-size: 14px; color: #166534; }
+    .section-intro { font-size: 14px; color: #64748b; margin-bottom: 16px; }
+    .big-wins { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+    .big-win { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; }
+    .big-win-title { font-weight: 600; font-size: 15px; color: #166534; margin-bottom: 8px; }
+    .big-win-desc { font-size: 14px; color: #15803d; line-height: 1.5; }
+    .friction-categories { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+    .friction-category { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; }
+    .friction-title { font-weight: 600; font-size: 15px; color: #991b1b; margin-bottom: 6px; }
+    .friction-desc { font-size: 13px; color: #7f1d1d; margin-bottom: 10px; }
+    .friction-examples { margin: 0 0 0 20px; font-size: 13px; color: #334155; }
+    .friction-examples li { margin-bottom: 4px; }
+    .claude-md-section { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+    .claude-md-section h3 { font-size: 14px; font-weight: 600; color: #1e40af; margin: 0 0 12px 0; }
+    .claude-md-actions { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #dbeafe; }
+    .copy-all-btn { background: #2563eb; color: white; border: none; border-radius: 4px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+    .copy-all-btn:hover { background: #1d4ed8; }
+    .copy-all-btn.copied { background: #16a34a; }
+    .claude-md-item { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding: 10px 0; border-bottom: 1px solid #dbeafe; }
+    .claude-md-item:last-child { border-bottom: none; }
+    .cmd-checkbox { margin-top: 2px; }
+    .cmd-code { background: white; padding: 8px 12px; border-radius: 4px; font-size: 12px; color: #1e40af; border: 1px solid #bfdbfe; font-family: monospace; display: block; white-space: pre-wrap; word-break: break-word; flex: 1; }
+    .cmd-why { font-size: 12px; color: #64748b; width: 100%; padding-left: 24px; margin-top: 4px; }
+    .features-section, .patterns-section { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
+    .feature-card { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 16px; }
+    .pattern-card { background: #f0f9ff; border: 1px solid #7dd3fc; border-radius: 8px; padding: 16px; }
+    .feature-title, .pattern-title { font-weight: 600; font-size: 15px; color: #0f172a; margin-bottom: 6px; }
+    .feature-oneliner { font-size: 14px; color: #475569; margin-bottom: 8px; }
+    .pattern-summary { font-size: 14px; color: #475569; margin-bottom: 8px; }
+    .feature-why, .pattern-detail { font-size: 13px; color: #334155; line-height: 1.5; }
+    .feature-examples { margin-top: 12px; }
+    .feature-example { padding: 8px 0; border-top: 1px solid #d1fae5; }
+    .feature-example:first-child { border-top: none; }
+    .example-desc { font-size: 13px; color: #334155; margin-bottom: 6px; }
+    .example-code-row { display: flex; align-items: flex-start; gap: 8px; }
+    .example-code { flex: 1; background: #f1f5f9; padding: 8px 12px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #334155; overflow-x: auto; white-space: pre-wrap; }
+    .copyable-prompt-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+    .copyable-prompt-row { display: flex; align-items: flex-start; gap: 8px; }
+    .copyable-prompt { flex: 1; background: #f8fafc; padding: 10px 12px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #334155; border: 1px solid #e2e8f0; white-space: pre-wrap; line-height: 1.5; }
+    .feature-code { background: #f8fafc; padding: 12px; border-radius: 6px; margin-top: 12px; border: 1px solid #e2e8f0; display: flex; align-items: flex-start; gap: 8px; }
+    .feature-code code { flex: 1; font-family: monospace; font-size: 12px; color: #334155; white-space: pre-wrap; }
+    .pattern-prompt { background: #f8fafc; padding: 12px; border-radius: 6px; margin-top: 12px; border: 1px solid #e2e8f0; }
+    .pattern-prompt code { font-family: monospace; font-size: 12px; color: #334155; display: block; white-space: pre-wrap; margin-bottom: 8px; }
+    .prompt-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 6px; }
+    .copy-btn { background: #e2e8f0; border: none; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; color: #475569; flex-shrink: 0; }
+    .copy-btn:hover { background: #cbd5e1; }
+    .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0; }
+    .chart-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
+    .chart-title { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 12px; }
+    .bar-row { display: flex; align-items: center; margin-bottom: 6px; }
+    .bar-label { width: 100px; font-size: 11px; color: #475569; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; margin: 0 8px; }
+    .bar-fill { height: 100%; border-radius: 3px; }
+    .bar-value { width: 28px; font-size: 11px; font-weight: 500; color: #64748b; text-align: right; }
+    .empty { color: #94a3b8; font-size: 13px; }
+    .horizon-section { display: flex; flex-direction: column; gap: 16px; }
+    .horizon-card { background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border: 1px solid #c4b5fd; border-radius: 8px; padding: 16px; }
+    .horizon-title { font-weight: 600; font-size: 15px; color: #5b21b6; margin-bottom: 8px; }
+    .horizon-possible { font-size: 14px; color: #334155; margin-bottom: 10px; line-height: 1.5; }
+    .horizon-tip { font-size: 13px; color: #6b21a8; background: rgba(255,255,255,0.6); padding: 8px 12px; border-radius: 4px; }
+    .feedback-header { margin-top: 48px; color: #64748b; font-size: 16px; }
+    .feedback-intro { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
+    .feedback-section { margin-top: 16px; }
+    .feedback-section h3 { font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 12px; }
+    .feedback-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .feedback-card.team-card { background: #eff6ff; border-color: #bfdbfe; }
+    .feedback-card.model-card { background: #faf5ff; border-color: #e9d5ff; }
+    .feedback-title { font-weight: 600; font-size: 14px; color: #0f172a; margin-bottom: 6px; }
+    .feedback-detail { font-size: 13px; color: #475569; line-height: 1.5; }
+    .feedback-evidence { font-size: 12px; color: #64748b; margin-top: 8px; }
+    .fun-ending { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1px solid #fbbf24; border-radius: 12px; padding: 24px; margin-top: 40px; text-align: center; }
+    .fun-headline { font-size: 18px; font-weight: 600; color: #78350f; margin-bottom: 8px; }
+    .fun-detail { font-size: 14px; color: #92400e; }
+    .collapsible-section { margin-top: 16px; }
+    .collapsible-header { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+    .collapsible-header h3 { margin: 0; font-size: 14px; font-weight: 600; color: #475569; }
+    .collapsible-arrow { font-size: 12px; color: #94a3b8; transition: transform 0.2s; }
+    .collapsible-content { display: none; padding-top: 16px; }
+    .collapsible-content.open { display: block; }
+    .collapsible-header.open .collapsible-arrow { transform: rotate(90deg); }
+    @media (max-width: 640px) { .charts-row { grid-template-columns: 1fr; } .stats-row { justify-content: center; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Claude Code Insights</h1>
+    <p class="subtitle">30,652 messages across 4204 sessions | 2026-01-17 to 2026-02-04</p>
+
+    
+    <div class="at-a-glance">
+      <div class="glance-title">At a Glance</div>
+      <div class="glance-sections">
+        <div class="glance-section"><strong>What's working:</strong> You've developed a strong full-stack implementation style, tackling complete features from database to UI in cohesive sessions—your speaker registration system is a good example of this end-to-end approach. You're also disciplined about breaking complex work into structured tasks, which keeps large multi-file changes organized and trackable. <a href="#section-wins" class="see-more">Impressive Things You Did →</a></div>
+        <div class="glance-section"><strong>What's hindering you:</strong> On Claude's side, environment setup during test runs has caused friction, with server conflicts requiring manual workarounds that break your flow. On your side, the sheer volume of exploratory Bash commands suggests opportunities to batch common operations into reusable scripts rather than running them ad-hoc each time. <a href="#section-friction" class="see-more">Where Things Go Wrong →</a></div>
+        <div class="glance-section"><strong>Quick wins to try:</strong> Try creating a <strong>hook</strong> that auto-runs your test environment bootstrap (checking ports, starting services) before test commands—this would eliminate the manual workarounds you've been doing. You could also define a <strong>custom skill</strong> that encapsulates your successful speaker registration pattern as a repeatable template for future full-stack features. <a href="#section-features" class="see-more">Features to Try →</a></div>
+        <div class="glance-section"><strong>Ambitious workflows:</strong> With more capable models, your E2E testing pain points become solvable through self-healing test agents that detect port conflicts, diagnose failures, and retry automatically without your intervention. Even more exciting: your full-stack feature work could split across parallel agents—one handling backend, one on frontend, one writing tests—then merging results, turning multi-hour sessions into sub-hour completions. <a href="#section-horizon" class="see-more">On the Horizon →</a></div>
+      </div>
+    </div>
+    
+
+    <nav class="nav-toc">
+      <a href="#section-work">What You Work On</a>
+      <a href="#section-usage">How You Use CC</a>
+      <a href="#section-wins">Impressive Things</a>
+      <a href="#section-friction">Where Things Go Wrong</a>
+      <a href="#section-features">Features to Try</a>
+      <a href="#section-patterns">New Usage Patterns</a>
+      <a href="#section-horizon">On the Horizon</a>
+      <a href="#section-feedback">Team Feedback</a>
+    </nav>
+
+    <div class="stats-row">
+      <div class="stat"><div class="stat-value">30,652</div><div class="stat-label">Messages</div></div>
+      <div class="stat"><div class="stat-value">+2,756,864/-480,796</div><div class="stat-label">Lines</div></div>
+      <div class="stat"><div class="stat-value">20670</div><div class="stat-label">Files</div></div>
+      <div class="stat"><div class="stat-value">16</div><div class="stat-label">Days</div></div>
+      <div class="stat"><div class="stat-value">1915.8</div><div class="stat-label">Msgs/Day</div></div>
+    </div>
+
+    
+    <h2 id="section-work">What You Work On</h2>
+    <div class="project-areas">
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">Speaker Registration System</span>
+            <span class="area-count">~1 sessions</span>
+          </div>
+          <div class="area-desc">Built a comprehensive speaker registration system including backend functions, a multi-step frontend wizard, and admin UI components. Claude Code handled full-stack implementation across the entire feature, from database operations to user-facing forms.</div>
+        </div>
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">End-to-End Testing Infrastructure</span>
+            <span class="area-count">~1 sessions</span>
+          </div>
+          <div class="area-desc">Established E2E test infrastructure and began writing integration tests for the application. Some friction was encountered with dev server timeouts during test setup, requiring workarounds to run tests on alternative ports.</div>
+        </div>
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">Python Development</span>
+            <span class="area-count">~2 sessions</span>
+          </div>
+          <div class="area-desc">Significant Python development work representing the largest language footprint in the codebase. Claude Code was heavily used for Bash commands, file editing, and code reading to implement and refine Python-based functionality.</div>
+        </div>
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">TypeScript/JavaScript Frontend Work</span>
+            <span class="area-count">~1 sessions</span>
+          </div>
+          <div class="area-desc">Frontend development using TypeScript and JavaScript, likely including React or similar framework components. Work involved substantial file editing and reading operations to build interactive UI features.</div>
+        </div>
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">Documentation and Configuration</span>
+            <span class="area-count">~1 sessions</span>
+          </div>
+          <div class="area-desc">Created and maintained Markdown documentation alongside YAML and JSON configuration files. Claude Code assisted with keeping project documentation current and managing configuration across the development workflow.</div>
+        </div>
+      
+    </div>
+    
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">What You Wanted</div>
+        <div class="bar-row">
+        <div class="bar-label">Feature Implementation</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#2563eb"></div></div>
+        <div class="bar-value">57</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Testing</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#2563eb"></div></div>
+        <div class="bar-value">57</div>
+      </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Top Tools Used</div>
+        <div class="bar-row">
+        <div class="bar-label">Bash</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#0891b2"></div></div>
+        <div class="bar-value">133397</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Edit</div>
+        <div class="bar-track"><div class="bar-fill" style="width:28.32372542111142%;background:#0891b2"></div></div>
+        <div class="bar-value">37783</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Read</div>
+        <div class="bar-track"><div class="bar-fill" style="width:28.08084139823234%;background:#0891b2"></div></div>
+        <div class="bar-value">37459</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">TodoWrite</div>
+        <div class="bar-track"><div class="bar-fill" style="width:10.569203205469387%;background:#0891b2"></div></div>
+        <div class="bar-value">14099</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Grep</div>
+        <div class="bar-track"><div class="bar-fill" style="width:9.375773068359857%;background:#0891b2"></div></div>
+        <div class="bar-value">12507</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Write</div>
+        <div class="bar-track"><div class="bar-fill" style="width:7.7460512605231%;background:#0891b2"></div></div>
+        <div class="bar-value">10333</div>
+      </div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Languages</div>
+        <div class="bar-row">
+        <div class="bar-label">Python</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981"></div></div>
+        <div class="bar-value">27701</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">TypeScript</div>
+        <div class="bar-track"><div class="bar-fill" style="width:73.75546009169344%;background:#10b981"></div></div>
+        <div class="bar-value">20431</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Markdown</div>
+        <div class="bar-track"><div class="bar-fill" style="width:52.969206887837984%;background:#10b981"></div></div>
+        <div class="bar-value">14673</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">JavaScript</div>
+        <div class="bar-track"><div class="bar-fill" style="width:36.17919930688423%;background:#10b981"></div></div>
+        <div class="bar-value">10022</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">JSON</div>
+        <div class="bar-track"><div class="bar-fill" style="width:9.328183098083102%;background:#10b981"></div></div>
+        <div class="bar-value">2584</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">HTML</div>
+        <div class="bar-track"><div class="bar-fill" style="width:5.573805999783402%;background:#10b981"></div></div>
+        <div class="bar-value">1544</div>
+      </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Session Types</div>
+        <div class="bar-row">
+        <div class="bar-label">Single Task</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#8b5cf6"></div></div>
+        <div class="bar-value">57</div>
+      </div>
+      </div>
+    </div>
+
+    
+    <h2 id="section-usage">How You Use Claude Code</h2>
+    <div class="narrative">
+      <p>You approach Claude Code with <strong>ambitious, comprehensive requests</strong> that span multiple layers of your application stack. Rather than breaking work into small incremental pieces, you prefer to describe complete features upfront and let Claude execute across backend, frontend, and testing infrastructure in single sessions. Your speaker registration system request exemplifies this—you asked for and received complete backend functions, a frontend wizard, admin UI, and E2E test infrastructure all in one go. This <strong>high-trust, low-interruption style</strong> is reflected in your massive tool usage: over 133,000 Bash executions and nearly 38,000 file edits across your sessions suggest you let Claude run extensively before stepping in.</p>
+<p>Your workflow is heavily <strong>execution-oriented rather than exploratory</strong>. The dominance of Bash commands (3.5x more than any other tool) combined with strong Edit and Read activity shows Claude is actively building and modifying your codebase, not just answering questions or planning. Your use of TodoWrite (14,000+ times) and TaskUpdate indicates you leverage structured task tracking to manage complex multi-step implementations. When friction occurs—like the dev server timeout during E2E test setup—you work through it pragmatically rather than abandoning the approach. Your <strong>polyglot codebase</strong> spanning Python, TypeScript, JavaScript, and Markdown suggests you're comfortable having Claude navigate complex project structures, trusting it to understand context across languages and file types.</p>
+      <div class="key-insight"><strong>Key pattern:</strong> You delegate large, multi-layered feature implementations to Claude with detailed upfront specs, then let it execute extensively with minimal interruption until delivery.</div>
+    </div>
+    
+
+    <!-- Response Time Distribution -->
+    <div class="chart-card" style="margin: 24px 0;">
+      <div class="chart-title">User Response Time Distribution</div>
+      <div class="bar-row">
+        <div class="bar-label">2-10s</div>
+        <div class="bar-track"><div class="bar-fill" style="width:43.400735294117645%;background:#6366f1"></div></div>
+        <div class="bar-value">2361</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">10-30s</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#6366f1"></div></div>
+        <div class="bar-value">5440</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">30s-1m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:77.77573529411764%;background:#6366f1"></div></div>
+        <div class="bar-value">4231</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">1-2m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:68.56617647058823%;background:#6366f1"></div></div>
+        <div class="bar-value">3730</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">2-5m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:51.470588235294116%;background:#6366f1"></div></div>
+        <div class="bar-value">2800</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">5-15m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:32.518382352941174%;background:#6366f1"></div></div>
+        <div class="bar-value">1769</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">>15m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:8.033088235294118%;background:#6366f1"></div></div>
+        <div class="bar-value">437</div>
+      </div>
+      <div style="font-size: 12px; color: #64748b; margin-top: 8px;">
+        Median: 46.9s &bull; Average: 129.1s
+      </div>
+    </div>
+
+    <!-- Multi-clauding Section (matching Python reference) -->
+    <div class="chart-card" style="margin: 24px 0;">
+      <div class="chart-title">Multi-Clauding (Parallel Sessions)</div>
+      
+        <div style="display: flex; gap: 24px; margin: 12px 0;">
+          <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #7c3aed;">22</div>
+            <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Overlap Events</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #7c3aed;">32</div>
+            <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Sessions Involved</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #7c3aed;">1%</div>
+            <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Of Messages</div>
+          </div>
+        </div>
+        <p style="font-size: 13px; color: #475569; margin-top: 12px;">
+          You run multiple Claude Code sessions simultaneously. Multi-clauding is detected when sessions
+          overlap in time, suggesting parallel workflows.
+        </p>
+      
+    </div>
+
+    <!-- Time of Day & Tool Errors -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title" style="display: flex; align-items: center; gap: 12px;">
+          User Messages by Time of Day
+          <select id="timezone-select" style="font-size: 12px; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
+            <option value="0">PT (UTC-8)</option>
+            <option value="3">ET (UTC-5)</option>
+            <option value="8">London (UTC)</option>
+            <option value="9">CET (UTC+1)</option>
+            <option value="17">Tokyo (UTC+9)</option>
+            <option value="custom">Custom offset...</option>
+          </select>
+          <input type="number" id="custom-offset" placeholder="UTC offset" style="display: none; width: 80px; font-size: 12px; padding: 4px; border-radius: 4px; border: 1px solid #e2e8f0;">
+        </div>
+        <div id="hour-histogram">
+      <div class="bar-row">
+        <div class="bar-label">Morning (6-12)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:27.127397934087554%;background:#8b5cf6"></div></div>
+        <div class="bar-value">3309</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Afternoon (12-18)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:92.6627315953435%;background:#8b5cf6"></div></div>
+        <div class="bar-value">11303</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Evening (18-24)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#8b5cf6"></div></div>
+        <div class="bar-value">12198</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Night (0-6)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:31.496966715855056%;background:#8b5cf6"></div></div>
+        <div class="bar-value">3842</div>
+      </div></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Tool Errors Encountered</div>
+        <div class="bar-row">
+        <div class="bar-label">Command Failed</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#dc2626"></div></div>
+        <div class="bar-value">12691</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Other</div>
+        <div class="bar-track"><div class="bar-fill" style="width:28.51627137341423%;background:#dc2626"></div></div>
+        <div class="bar-value">3619</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">File Too Large</div>
+        <div class="bar-track"><div class="bar-fill" style="width:4.712000630367977%;background:#dc2626"></div></div>
+        <div class="bar-value">598</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">File Not Found</div>
+        <div class="bar-track"><div class="bar-fill" style="width:2.844535497596722%;background:#dc2626"></div></div>
+        <div class="bar-value">361</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">File Changed</div>
+        <div class="bar-track"><div class="bar-fill" style="width:1.9147427310692615%;background:#dc2626"></div></div>
+        <div class="bar-value">243</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">User Rejected</div>
+        <div class="bar-track"><div class="bar-fill" style="width:1.5680403435505479%;background:#dc2626"></div></div>
+        <div class="bar-value">199</div>
+      </div>
+      </div>
+    </div>
+
+    
+    <h2 id="section-wins">Impressive Things You Did</h2>
+    <p class="section-intro">You're a power user running intensive development sessions across Python, TypeScript, and JavaScript with exceptional productivity metrics.</p>
+    <div class="big-wins">
+      
+        <div class="big-win">
+          <div class="big-win-title">Full-Stack Feature Development</div>
+          <div class="big-win-desc">You tackle comprehensive feature implementations end-to-end, building complete systems spanning backend functions, frontend wizards, and admin interfaces in single sessions. Your speaker registration system work demonstrates your ability to orchestrate complex multi-layer development with Claude handling everything from database logic to UI components.</div>
+        </div>
+      
+        <div class="big-win">
+          <div class="big-win-title">Heavy Bash-Driven Automation</div>
+          <div class="big-win-desc">With over 133,000 Bash tool invocations, you've built workflows that leverage command-line operations extensively for testing, building, and validating code. This approach lets you maintain tight feedback loops and verify changes quickly, making your development cycles highly efficient.</div>
+        </div>
+      
+        <div class="big-win">
+          <div class="big-win-title">Structured Task Management</div>
+          <div class="big-win-desc">You actively use TodoWrite and TaskUpdate tools to break down complex work into manageable pieces, with over 17,000 combined uses. This structured approach keeps large feature implementations organized and ensures systematic progress through multi-file changes across your polyglot codebase.</div>
+        </div>
+      
+    </div>
+    
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">What Helped Most (Claude's Capabilities)</div>
+        <div class="bar-row">
+        <div class="bar-label">Multi-file Changes</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#16a34a"></div></div>
+        <div class="bar-value">57</div>
+      </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Outcomes</div>
+        <div class="bar-row">
+        <div class="bar-label">Mostly Achieved</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#8b5cf6"></div></div>
+        <div class="bar-value">57</div>
+      </div>
+      </div>
+    </div>
+
+    
+    <h2 id="section-friction">Where Things Go Wrong</h2>
+    <p class="section-intro">Your workflow shows consistent environment configuration issues that slow down testing and development cycles.</p>
+    <div class="friction-categories">
+      
+        <div class="friction-category">
+          <div class="friction-title">E2E Test Environment Setup</div>
+          <div class="friction-desc">You're encountering server configuration conflicts during E2E test runs. Consider setting up dedicated test environment configurations with pre-defined ports and timeouts to avoid conflicts with development servers.</div>
+          <ul class="friction-examples"><li>Dev server timeout during E2E test setup forced a port change workaround, adding friction to an otherwise complete implementation</li><li>Test infrastructure setup taking extra iterations when environment wasn't pre-configured for E2E scenarios</li></ul>
+        </div>
+      
+        <div class="friction-category">
+          <div class="friction-title">Heavy Bash Tool Reliance</div>
+          <div class="friction-desc">You're using Bash commands at 3.5x the rate of file edits, which may indicate running exploratory commands that could be batched or scripted. Creating reusable shell scripts for common operations could reduce iteration cycles.</div>
+          <ul class="friction-examples"><li>High Bash-to-Edit ratio suggests repeated environment checks or build commands that could be automated</li><li>Manual command sequences for setup tasks that might benefit from a dedicated project script</li></ul>
+        </div>
+      
+        <div class="friction-category">
+          <div class="friction-title">Multi-Language Context Switching</div>
+          <div class="friction-desc">You're working across Python, TypeScript, JavaScript, and Markdown simultaneously, which can create cognitive overhead. Consider establishing clearer boundaries between frontend and backend work sessions to reduce context switching.</div>
+          <ul class="friction-examples"><li>Speaker registration system spanning multiple languages required coordinating changes across 5+ file types in a single session</li><li>Testing infrastructure touched both Python backend and TypeScript/JavaScript frontend test runners simultaneously</li></ul>
+        </div>
+      
+    </div>
+    
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Primary Friction Types</div>
+        <div class="bar-row">
+        <div class="bar-label">Environment Issues</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#dc2626"></div></div>
+        <div class="bar-value">57</div>
+      </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Inferred Satisfaction (model-estimated)</div>
+        <div class="bar-row">
+        <div class="bar-label">Likely Satisfied</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#eab308"></div></div>
+        <div class="bar-value">57</div>
+      </div>
+      </div>
+    </div>
+
+    
+    
+    <h2 id="section-features">Existing CC Features to Try</h2>
+    <div class="claude-md-section">
+      <h3>Suggested CLAUDE.md Additions</h3>
+      <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Just copy this into Claude Code to add it to your CLAUDE.md.</p>
+      <div class="claude-md-actions">
+        <button class="copy-all-btn" onclick="copyAllCheckedClaudeMd()">Copy All Checked</button>
+      </div>
+      
+        <div class="claude-md-item">
+          <input type="checkbox" id="cmd-0" class="cmd-checkbox" checked data-text="Add under a new ## E2E Testing section, or create one if it doesn't exist\n\nWhen running E2E tests, check if port 3000 is in use and automatically try alternative ports (3001, 3002) before starting the dev server. Use `lsof -i :3000` to check port availability.">
+          <label for="cmd-0">
+            <code class="cmd-code">When running E2E tests, check if port 3000 is in use and automatically try alternative ports (3001, 3002) before starting the dev server. Use `lsof -i :3000` to check port availability.</code>
+            <button class="copy-btn" onclick="copyCmdItem(0)">Copy</button>
+          </label>
+          <div class="cmd-why">Sessions showed friction with dev server timeouts during E2E test setup, requiring manual port workarounds.</div>
+        </div>
+      
+        <div class="claude-md-item">
+          <input type="checkbox" id="cmd-1" class="cmd-checkbox" checked data-text="Add under ## Development Workflow section\n\nFor feature implementations, follow this order: 1) Backend functions/API, 2) Frontend components, 3) Admin UI if needed, 4) E2E tests. Commit after each major phase.">
+          <label for="cmd-1">
+            <code class="cmd-code">For feature implementations, follow this order: 1) Backend functions/API, 2) Frontend components, 3) Admin UI if needed, 4) E2E tests. Commit after each major phase.</code>
+            <button class="copy-btn" onclick="copyCmdItem(1)">Copy</button>
+          </label>
+          <div class="cmd-why">The successful speaker registration implementation followed this pattern and achieved good outcomes across multi-file changes.</div>
+        </div>
+      
+        <div class="claude-md-item">
+          <input type="checkbox" id="cmd-2" class="cmd-checkbox" checked data-text="Add near the top of CLAUDE.md under ## Tech Stack or ## Project Overview\n\nPrimary languages in this codebase: Python (backend), TypeScript (frontend), with JavaScript for tooling. Always use type hints in Python and strict TypeScript types.">
+          <label for="cmd-2">
+            <code class="cmd-code">Primary languages in this codebase: Python (backend), TypeScript (frontend), with JavaScript for tooling. Always use type hints in Python and strict TypeScript types.</code>
+            <button class="copy-btn" onclick="copyCmdItem(2)">Copy</button>
+          </label>
+          <div class="cmd-why">Language distribution shows Python and TypeScript as dominant - establishing this context upfront saves repeated clarification.</div>
+        </div>
+      
+    </div>
+    
+    
+    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Just copy this into Claude Code and it'll set it up for you.</p>
+    <div class="features-section">
+      
+        <div class="feature-card">
+          <div class="feature-title">Custom Skills</div>
+          <div class="feature-oneliner">Reusable prompts that run with a single /command</div>
+          <div class="feature-why"><strong>Why for you:</strong> With 57 feature implementations and 57 testing goals, you repeat similar workflows constantly. A /feature or /e2e skill could standardize your successful backend→frontend→tests pattern.</div>
+          
+          <div class="feature-examples">
+            <div class="feature-example">
+              <div class="example-code-row">
+                <code class="example-code">mkdir -p .claude/skills/feature &amp;&amp; echo '# Feature Implementation
+
+1. Implement backend functions/API endpoints
+2. Build frontend components with TypeScript
+3. Add admin UI if user-facing
+4. Write E2E tests
+5. Commit after each phase with descriptive message' &gt; .claude/skills/feature/SKILL.md</code>
+                <button class="copy-btn" onclick="copyText(this)">Copy</button>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      
+        <div class="feature-card">
+          <div class="feature-title">Hooks</div>
+          <div class="feature-oneliner">Auto-run commands at lifecycle events like before commits</div>
+          <div class="feature-why"><strong>Why for you:</strong> With 2,601 commits and heavy TypeScript/Python usage, auto-running type checks and linters before commits would catch issues early and reduce environment friction.</div>
+          
+          <div class="feature-examples">
+            <div class="feature-example">
+              <div class="example-code-row">
+                <code class="example-code">// Add to .claude/settings.json:
+{
+  &quot;hooks&quot;: {
+    &quot;pre-commit&quot;: [
+      &quot;npx tsc --noEmit&quot;,
+      &quot;python -m mypy . --ignore-missing-imports&quot;
+    ]
+  }
+}</code>
+                <button class="copy-btn" onclick="copyText(this)">Copy</button>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      
+        <div class="feature-card">
+          <div class="feature-title">Task Agents</div>
+          <div class="feature-oneliner">Claude spawns sub-agents for parallel or complex exploration</div>
+          <div class="feature-why"><strong>Why for you:</strong> Your multi-file feature implementations (like the speaker registration wizard with backend + frontend + admin + tests) could benefit from parallel exploration of different system parts.</div>
+          
+          <div class="feature-examples">
+            <div class="feature-example">
+              <div class="example-code-row">
+                <code class="example-code">Try prompting: &quot;Use a task agent to explore the existing registration patterns in the codebase while I describe the new speaker registration requirements&quot;</code>
+                <button class="copy-btn" onclick="copyText(this)">Copy</button>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      
+    </div>
+    
+    
+    <h2 id="section-patterns">New Ways to Use Claude Code</h2>
+    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Just copy this into Claude Code and it'll walk you through it.</p>
+    <div class="patterns-section">
+      
+        <div class="pattern-card">
+          <div class="pattern-title">E2E Test Environment Setup</div>
+          <div class="pattern-summary">Pre-check ports and create a test environment bootstrap script.</div>
+          <div class="pattern-detail">Your E2E test friction came from dev server timeouts and port conflicts. Creating a reusable test bootstrap that handles port detection, server startup with health checks, and graceful teardown would eliminate this recurring issue. Given your 57 testing-focused sessions, this investment pays off quickly.</div>
+          
+          <div class="copyable-prompt-section">
+            <div class="prompt-label">Paste into Claude Code:</div>
+            <div class="copyable-prompt-row">
+              <code class="copyable-prompt">Create a test-setup.sh script that: 1) Finds an available port starting from 3000, 2) Starts the dev server on that port with a 30s timeout, 3) Waits for health check endpoint, 4) Exports the port as TEST_PORT env var, 5) Sets up cleanup on exit</code>
+              <button class="copy-btn" onclick="copyText(this)">Copy</button>
+            </div>
+          </div>
+          
+        </div>
+      
+        <div class="pattern-card">
+          <div class="pattern-title">Full-Stack Feature Template</div>
+          <div class="pattern-summary">Use your successful speaker registration pattern as a repeatable template.</div>
+          <div class="pattern-detail">Your speaker registration implementation achieved 'mostly_achieved' with the pattern: backend functions → frontend wizard → admin UI → E2E tests. With 57 feature implementations at similar satisfaction levels, codifying this into a checklist or template ensures consistency and reduces cognitive load on complex features.</div>
+          
+          <div class="copyable-prompt-section">
+            <div class="prompt-label">Paste into Claude Code:</div>
+            <div class="copyable-prompt-row">
+              <code class="copyable-prompt">Create a FEATURE_TEMPLATE.md that documents our standard feature implementation pattern: 1) Define API contract, 2) Implement backend with Python type hints, 3) Build TypeScript frontend components, 4) Add admin interface if needed, 5) Write E2E tests covering happy path and error states</code>
+              <button class="copy-btn" onclick="copyText(this)">Copy</button>
+            </div>
+          </div>
+          
+        </div>
+      
+        <div class="pattern-card">
+          <div class="pattern-title">Heavy Bash Usage Optimization</div>
+          <div class="pattern-summary">Create shell aliases or scripts for your most common Bash patterns.</div>
+          <div class="pattern-detail">With 133,397 Bash tool invocations (3.5x more than your next tool), you're running many shell commands. Analyzing common patterns and creating project-specific aliases or npm/poetry scripts would reduce repetition and make intentions clearer in your conversations with Claude.</div>
+          
+          <div class="copyable-prompt-section">
+            <div class="prompt-label">Paste into Claude Code:</div>
+            <div class="copyable-prompt-row">
+              <code class="copyable-prompt">Analyze the last 20 Bash commands I've run in this project and suggest which ones should become package.json scripts, Makefile targets, or shell aliases. Group by category (testing, building, deployment, utilities).</code>
+              <button class="copy-btn" onclick="copyText(this)">Copy</button>
+            </div>
+          </div>
+          
+        </div>
+      
+    </div>
+    
+    
+
+    
+    <h2 id="section-horizon">On the Horizon</h2>
+    <p class="section-intro">Your development workflow shows strong feature implementation patterns with testing integration—now ready to scale with autonomous, self-correcting agent loops.</p>
+    <div class="horizon-section">
+      
+        <div class="horizon-card">
+          <div class="horizon-title">Self-Healing Test Suites with Autonomous Retry</div>
+          <div class="horizon-possible">Your E2E test friction (dev server timeouts, port conflicts) can be eliminated by agents that automatically detect failures, diagnose environment issues, and retry with corrective actions. Imagine tests that spawn on available ports, wait for services intelligently, and fix their own setup problems—running overnight without human intervention.</div>
+          <div class="horizon-tip"><strong>Getting started:</strong> Use Claude Code's headless mode with bash loops that capture exit codes and re-invoke with diagnostic context, or try the Task tool for persistent multi-step execution.</div>
+          <div class="pattern-prompt"><div class="prompt-label">Paste into Claude Code:</div><code>Create a self-healing E2E test runner script that: 1) Attempts to start the dev server on port 3000, 2) If port is busy, automatically finds an available port and updates test config, 3) Implements exponential backoff waiting for server readiness with health checks, 4) On test failure, captures logs/screenshots, diagnoses common issues (timeouts, missing deps, stale state), 5) Automatically retries with fixes up to 3 times, 6) Outputs a detailed report of all recovery actions taken. Use our existing Playwright/Jest setup.</code><button class="copy-btn" onclick="copyText(this)">Copy</button></div>
+        </div>
+      
+        <div class="horizon-card">
+          <div class="horizon-title">Parallel Feature Agents with Shared Context</div>
+          <div class="horizon-possible">Your speaker registration system touched backend, frontend wizard, and admin UI simultaneously—perfect for parallel agent execution. Multiple Claude instances can work on isolated feature branches, each handling a layer (API, UI, tests), then merge their work with conflict resolution. A 4-hour feature becomes 45 minutes.</div>
+          <div class="horizon-tip"><strong>Getting started:</strong> Spawn multiple Claude Code sessions in tmux/separate terminals with git worktrees, or use the SDK to orchestrate parallel subagents that report to a coordinator.</div>
+          <div class="pattern-prompt"><div class="prompt-label">Paste into Claude Code:</div><code>I need to build a [FEATURE_NAME] system. Act as a coordinator and create a parallel execution plan: 1) Define 3-4 independent workstreams (e.g., database/API, frontend components, integration tests, documentation), 2) For each workstream, write a complete standalone prompt that another Claude instance could execute independently, 3) Identify shared interfaces/contracts that must be agreed upon upfront, 4) Create a final merge/integration checklist. Output as a structured plan I can distribute across parallel sessions using git worktrees.</code><button class="copy-btn" onclick="copyText(this)">Copy</button></div>
+        </div>
+      
+        <div class="horizon-card">
+          <div class="horizon-title">Iterative TDD Agent Until Green</div>
+          <div class="horizon-possible">With 57 testing-focused sessions and heavy Bash usage (133K calls), you're primed for fully autonomous TDD loops. Claude can write a failing test, implement code, run the suite, read failures, fix issues, and repeat—all without prompting—until the entire suite passes or a complexity threshold triggers human review.</div>
+          <div class="horizon-tip"><strong>Getting started:</strong> Combine TodoWrite for task tracking with Bash test execution in a single prompt that explicitly permits iteration cycles, using exit codes as continuation signals.</div>
+          <div class="pattern-prompt"><div class="prompt-label">Paste into Claude Code:</div><code>Implement this feature using strict TDD with autonomous iteration: [DESCRIBE FEATURE]. Rules: 1) First write comprehensive failing tests covering happy path, edge cases, and error states, 2) Run tests and confirm they fail for the right reasons, 3) Implement minimal code to pass one test at a time, 4) After each implementation, run full test suite, 5) If any test fails, analyze the failure, fix the code, and re-run—DO NOT ask me for input, 6) Continue this loop until ALL tests pass, 7) Only stop to ask me if you've attempted 5+ fixes for the same failure. Track your iteration count and report final metrics.</code><button class="copy-btn" onclick="copyText(this)">Copy</button></div>
+        </div>
+      
+    </div>
+    
+
+    
+    <div class="fun-ending">
+      <div class="fun-headline">"Claude built an entire speaker registration system with wizard UI, admin panel, and test infrastructure - then got stuck waiting for a dev server that wouldn't start"</div>
+      <div class="fun-detail">After successfully implementing a complete backend, frontend wizard, and admin interface, Claude's E2E testing hit a wall when the dev server timed out - requiring a port-switching workaround to finally run the tests</div>
+    </div>
+    
+
+    
+  </div>
+  <script>
+    function toggleCollapsible(header) {
+      header.classList.toggle('open');
+      const content = header.nextElementSibling;
+      content.classList.toggle('open');
+    }
+    function copyText(btn) {
+      const code = btn.previousElementSibling;
+      navigator.clipboard.writeText(code.textContent).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+    function copyCmdItem(idx) {
+      const checkbox = document.getElementById('cmd-' + idx);
+      if (checkbox) {
+        const text = checkbox.dataset.text;
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = checkbox.nextElementSibling.querySelector('.copy-btn');
+          if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy'; }, 2000); }
+        });
+      }
+    }
+    function copyAllCheckedClaudeMd() {
+      const checkboxes = document.querySelectorAll('.cmd-checkbox:checked');
+      const texts = [];
+      checkboxes.forEach(cb => {
+        if (cb.dataset.text) { texts.push(cb.dataset.text); }
+      });
+      const combined = texts.join('\n');
+      const btn = document.querySelector('.copy-all-btn');
+      if (btn) {
+        navigator.clipboard.writeText(combined).then(() => {
+          btn.textContent = 'Copied ' + texts.length + ' items!';
+          btn.classList.add('copied');
+          setTimeout(() => { btn.textContent = 'Copy All Checked'; btn.classList.remove('copied'); }, 2000);
+        });
+      }
+    }
+    // Timezone selector for time of day chart (data is from our own analytics, not user input)
+    const rawHourCounts = {"0":249,"1":1369,"2":1059,"3":401,"4":258,"5":506,"6":884,"7":199,"8":202,"9":139,"10":955,"11":930,"12":980,"13":1221,"14":1930,"15":2186,"16":2160,"17":2826,"18":2563,"19":2205,"20":2721,"21":1494,"22":1992,"23":1223};
+    function updateHourHistogram(offsetFromPT) {
+      const periods = [
+        { label: "Morning (6-12)", range: [6,7,8,9,10,11] },
+        { label: "Afternoon (12-18)", range: [12,13,14,15,16,17] },
+        { label: "Evening (18-24)", range: [18,19,20,21,22,23] },
+        { label: "Night (0-6)", range: [0,1,2,3,4,5] }
+      ];
+      const adjustedCounts = {};
+      for (const [hour, count] of Object.entries(rawHourCounts)) {
+        const newHour = (parseInt(hour) + offsetFromPT + 24) % 24;
+        adjustedCounts[newHour] = (adjustedCounts[newHour] || 0) + count;
+      }
+      const periodCounts = periods.map(p => ({
+        label: p.label,
+        count: p.range.reduce((sum, h) => sum + (adjustedCounts[h] || 0), 0)
+      }));
+      const maxCount = Math.max(...periodCounts.map(p => p.count)) || 1;
+      const container = document.getElementById('hour-histogram');
+      container.textContent = '';
+      periodCounts.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+        const label = document.createElement('div');
+        label.className = 'bar-label';
+        label.textContent = p.label;
+        const track = document.createElement('div');
+        track.className = 'bar-track';
+        const fill = document.createElement('div');
+        fill.className = 'bar-fill';
+        fill.style.width = (p.count / maxCount) * 100 + '%';
+        fill.style.background = '#8b5cf6';
+        track.appendChild(fill);
+        const value = document.createElement('div');
+        value.className = 'bar-value';
+        value.textContent = p.count;
+        row.appendChild(label);
+        row.appendChild(track);
+        row.appendChild(value);
+        container.appendChild(row);
+      });
+    }
+    document.getElementById('timezone-select').addEventListener('change', function() {
+      const customInput = document.getElementById('custom-offset');
+      if (this.value === 'custom') {
+        customInput.style.display = 'inline-block';
+        customInput.focus();
+      } else {
+        customInput.style.display = 'none';
+        updateHourHistogram(parseInt(this.value));
+      }
+    });
+    document.getElementById('custom-offset').addEventListener('change', function() {
+      const offset = parseInt(this.value) + 8;
+      updateHourHistogram(offset);
+    });
+  </script>
+</body>
+</html>

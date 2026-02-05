@@ -465,6 +465,34 @@
       font-size: 1.2rem;
     }
 
+    /* Fun facts section */
+    .fun-facts {
+      background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+      border: 3px solid var(--gold);
+    }
+
+    .fun-facts .insight-item {
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .fun-facts .insight-item::before {
+      content: '';
+    }
+
+    /* Collaboration insights section */
+    .collab-insights {
+      background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+      border: 3px solid #60a5fa;
+    }
+
+    .collab-insights .insight-item {
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .collab-insights .insight-item::before {
+      content: '';
+    }
+
     /* Deep dive collapsible */
     .deep-dive {
       border: 3px solid #e5e7eb;
@@ -1248,21 +1276,49 @@
       const bodyHtml = doc.body.innerHTML;
 
       const data = {
+        // Basic stats
         messages: 0,
+        sessions: 0,
         lines: { added: 0, removed: 0 },
         files: 0,
         days: 0,
         msgsPerDay: 0,
+        dateRange: { start: '', end: '' },
+
+        // Tool and language usage
         tools: {},
         languages: {},
+
+        // Response patterns
         responseTime: { median: 0, average: 0 },
+        responseTimeBuckets: {}, // e.g., {"2-10s": 2361, "10-30s": 5440, ...}
         multiClauding: { events: 0, sessions: 0, percent: 0 },
         timeOfDay: { morning: 0, afternoon: 0, evening: 0, night: 0 },
         rawHourCounts: null,
+
+        // Errors
         errors: {},
         errorTotal: 0,
-        frictionCategories: [],
-        bigWins: []
+
+        // Project areas (new)
+        projectAreas: [], // [{name, sessions, description}, ...]
+
+        // Qualitative content (new)
+        atAGlance: {
+          whatsWorking: '',
+          whatsHindering: '',
+          quickWins: '',
+          ambitiousWorkflows: ''
+        },
+        narrative: '', // The "How You Use Claude Code" prose
+        keyInsight: '', // The key pattern insight
+
+        // Achievements and friction (enhanced)
+        bigWins: [], // [{title, description}, ...]
+        frictionCategories: [], // [{title, description, examples: []}, ...]
+
+        // Fun ending (new)
+        funEnding: { headline: '', detail: '' }
       };
 
       try {
@@ -1428,56 +1484,141 @@
         }
 
         // ========================================
-        // PARSE FRICTION CATEGORIES
+        // PARSE SESSIONS AND DATE RANGE (from subtitle)
         // ========================================
-        const frictionSection = findSectionsContaining(doc, ['friction', 'pain points', 'what\'s hindering', 'challenges'])[0];
-        if (frictionSection) {
-          // Look for titles/headings within friction section
-          const titles = frictionSection.querySelectorAll('h3, h4, .friction-title, [class*="friction"] [class*="title"], strong');
-          titles.forEach(el => {
-            const text = el.textContent.trim();
-            if (text.length > 3 && text.length < 100) {
-              data.frictionCategories.push(text);
+        const subtitle = doc.querySelector('.subtitle');
+        if (subtitle) {
+          const subtitleText = subtitle.textContent;
+          // Extract sessions: "30,652 messages across 4204 sessions"
+          const sessionsMatch = subtitleText.match(/(\d[\d,]*)\s*sessions/i);
+          if (sessionsMatch) data.sessions = safeParseInt(sessionsMatch[1]);
+
+          // Extract date range: "2026-01-17 to 2026-02-04"
+          const dateMatch = subtitleText.match(/(\d{4}-\d{2}-\d{2})\s*to\s*(\d{4}-\d{2}-\d{2})/);
+          if (dateMatch) {
+            data.dateRange.start = dateMatch[1];
+            data.dateRange.end = dateMatch[2];
+          }
+        }
+
+        // ========================================
+        // PARSE RESPONSE TIME BUCKETS
+        // ========================================
+        const responseTimeCard = findChartByTitle(doc, 'response time', 'user response');
+        if (responseTimeCard) {
+          data.responseTimeBuckets = extractLabelValuePairs(responseTimeCard);
+        }
+
+        // ========================================
+        // PARSE PROJECT AREAS
+        // ========================================
+        const projectAreasContainer = doc.querySelector('.project-areas');
+        if (projectAreasContainer) {
+          const areas = projectAreasContainer.querySelectorAll('.project-area');
+          areas.forEach(area => {
+            const name = area.querySelector('.area-name')?.textContent.trim() || '';
+            const sessionsText = area.querySelector('.area-count')?.textContent.trim() || '';
+            const description = area.querySelector('.area-desc')?.textContent.trim() || '';
+            const sessionCount = safeParseInt(sessionsText.replace(/[^\d]/g, ''));
+            if (name) {
+              data.projectAreas.push({ name, sessions: sessionCount, description });
             }
           });
         }
 
-        // Fallback: explicit selectors
+        // ========================================
+        // PARSE AT A GLANCE SECTION
+        // ========================================
+        const atAGlance = doc.querySelector('.at-a-glance');
+        if (atAGlance) {
+          const sections = atAGlance.querySelectorAll('.glance-section');
+          sections.forEach(section => {
+            const strong = section.querySelector('strong');
+            if (strong) {
+              const label = strong.textContent.toLowerCase();
+              // Get text after the strong tag (before any link)
+              const fullText = section.textContent.trim();
+              const strongText = strong.textContent;
+              const content = fullText.substring(fullText.indexOf(strongText) + strongText.length).trim();
+              const cleanContent = content.replace(/→.*$/, '').trim(); // Remove "See more →" links
+
+              if (label.includes('working')) data.atAGlance.whatsWorking = cleanContent;
+              else if (label.includes('hindering')) data.atAGlance.whatsHindering = cleanContent;
+              else if (label.includes('quick wins')) data.atAGlance.quickWins = cleanContent;
+              else if (label.includes('ambitious')) data.atAGlance.ambitiousWorkflows = cleanContent;
+            }
+          });
+        }
+
+        // ========================================
+        // PARSE NARRATIVE AND KEY INSIGHT
+        // ========================================
+        const narrative = doc.querySelector('.narrative');
+        if (narrative) {
+          const paragraphs = narrative.querySelectorAll('p');
+          data.narrative = Array.from(paragraphs).map(p => p.textContent.trim()).join('\n\n');
+
+          const keyInsight = narrative.querySelector('.key-insight');
+          if (keyInsight) {
+            data.keyInsight = keyInsight.textContent.replace(/Key pattern:\s*/i, '').trim();
+          }
+        }
+
+        // ========================================
+        // PARSE FRICTION CATEGORIES (enhanced with descriptions)
+        // ========================================
+        const frictionCards = doc.querySelectorAll('.friction-category');
+        frictionCards.forEach(card => {
+          const title = card.querySelector('.friction-title')?.textContent.trim() || '';
+          const description = card.querySelector('.friction-desc')?.textContent.trim() || '';
+          const examplesList = card.querySelectorAll('.friction-examples li');
+          const examples = Array.from(examplesList).map(li => li.textContent.trim());
+          if (title) {
+            data.frictionCategories.push({ title, description, examples });
+          }
+        });
+
+        // Fallback: just titles if no cards found
         if (data.frictionCategories.length === 0) {
-          const frictionSelectors = ['.friction-title', '[class*="friction"] [class*="title"]', '.pain-point'];
-          for (const selector of frictionSelectors) {
-            const elements = doc.querySelectorAll(selector);
-            if (elements.length > 0) {
-              elements.forEach(el => data.frictionCategories.push(el.textContent.trim()));
-              break;
-            }
+          const frictionSection = findSectionsContaining(doc, ['friction', 'pain points', 'challenges'])[0];
+          if (frictionSection) {
+            const titles = frictionSection.querySelectorAll('.friction-title, [class*="friction"] [class*="title"]');
+            titles.forEach(el => {
+              data.frictionCategories.push({ title: el.textContent.trim(), description: '', examples: [] });
+            });
           }
         }
 
         // ========================================
-        // PARSE BIG WINS / ACHIEVEMENTS
+        // PARSE BIG WINS (enhanced with descriptions)
         // ========================================
-        const winsSection = findSectionsContaining(doc, ['impressive things', 'big wins', 'achievements', 'accomplishments'])[0];
-        if (winsSection) {
-          const titles = winsSection.querySelectorAll('h3, h4, .big-win-title, [class*="win"] [class*="title"], strong');
-          titles.forEach(el => {
-            const text = el.textContent.trim();
-            if (text.length > 3 && text.length < 150) {
-              data.bigWins.push(text);
-            }
-          });
-        }
+        const winCards = doc.querySelectorAll('.big-win');
+        winCards.forEach(card => {
+          const title = card.querySelector('.big-win-title')?.textContent.trim() || '';
+          const description = card.querySelector('.big-win-desc')?.textContent.trim() || '';
+          if (title) {
+            data.bigWins.push({ title, description });
+          }
+        });
 
-        // Fallback: explicit selectors
+        // Fallback: just titles if no cards found
         if (data.bigWins.length === 0) {
-          const winsSelectors = ['.big-win-title', '[class*="win"] [class*="title"]', '.achievement'];
-          for (const selector of winsSelectors) {
-            const elements = doc.querySelectorAll(selector);
-            if (elements.length > 0) {
-              elements.forEach(el => data.bigWins.push(el.textContent.trim()));
-              break;
-            }
+          const winsSection = findSectionsContaining(doc, ['impressive things', 'big wins', 'achievements'])[0];
+          if (winsSection) {
+            const titles = winsSection.querySelectorAll('.big-win-title, [class*="win"] [class*="title"]');
+            titles.forEach(el => {
+              data.bigWins.push({ title: el.textContent.trim(), description: '' });
+            });
           }
+        }
+
+        // ========================================
+        // PARSE FUN ENDING
+        // ========================================
+        const funEnding = doc.querySelector('.fun-ending');
+        if (funEnding) {
+          data.funEnding.headline = funEnding.querySelector('.fun-headline')?.textContent.trim() || '';
+          data.funEnding.detail = funEnding.querySelector('.fun-detail')?.textContent.trim() || '';
         }
 
       } catch (e) {
@@ -1744,6 +1885,146 @@
       return { intro, workStyle, prediction };
     }
 
+    // Generate fun facts comparing the two users
+    function generateFunFacts(a, b, nameA, nameB) {
+      const facts = [];
+
+      // Combined output
+      const totalLines = a.lines.added + b.lines.added;
+      if (totalLines > 100000) {
+        const comparison = totalLines > 1000000 ?
+          `roughly ${Math.round(totalLines / 69325)} copies of jQuery` :
+          `${(totalLines / 1000).toFixed(0)}k lines of code`;
+        facts.push(`📚 <strong>Combined output:</strong> Together you've written ${comparison}!`);
+      }
+
+      // Speed gap
+      if (a.responseTime.median > 0 && b.responseTime.median > 0) {
+        const faster = a.responseTime.median < b.responseTime.median ? nameA : nameB;
+        const slower = a.responseTime.median < b.responseTime.median ? nameB : nameA;
+        const diff = Math.abs(a.responseTime.median - b.responseTime.median);
+        if (diff > 20) {
+          facts.push(`⚡ <strong>Speed gap:</strong> ${faster} responds ${Math.round(diff)}s faster on average. ${slower} takes their time to think.`);
+        }
+      }
+
+      // Error rate comparison
+      const totalToolsA = Object.values(a.tools).reduce((s,v)=>s+v,0) || 1;
+      const totalToolsB = Object.values(b.tools).reduce((s,v)=>s+v,0) || 1;
+      const errorRateA = (a.errorTotal / totalToolsA) * 100;
+      const errorRateB = (b.errorTotal / totalToolsB) * 100;
+      if (Math.abs(errorRateA - errorRateB) > 3) {
+        const riskier = errorRateA > errorRateB ? nameA : nameB;
+        facts.push(`🎲 <strong>Risk-taker:</strong> ${riskier} has a higher error rate. Either more adventurous or more reckless — you decide.`);
+      }
+
+      // Night owl vs early bird
+      const nightA = (a.timeOfDay.evening + a.timeOfDay.night) / (Object.values(a.timeOfDay).reduce((s,v)=>s+v,0) || 1);
+      const nightB = (b.timeOfDay.evening + b.timeOfDay.night) / (Object.values(b.timeOfDay).reduce((s,v)=>s+v,0) || 1);
+      if (nightA > 0.6 && nightB < 0.4) {
+        facts.push(`🌙 <strong>Schedule clash:</strong> ${nameA} is a night owl while ${nameB} prefers daylight. You could run a 24-hour dev shop!`);
+      } else if (nightB > 0.6 && nightA < 0.4) {
+        facts.push(`🌙 <strong>Schedule clash:</strong> ${nameB} is a night owl while ${nameA} prefers daylight. You could run a 24-hour dev shop!`);
+      }
+
+      // Language diversity
+      const allLangs = new Set([...Object.keys(a.languages), ...Object.keys(b.languages)]);
+      const sharedLangs = Object.keys(a.languages).filter(l => b.languages[l]);
+      if (allLangs.size >= 6) {
+        facts.push(`🌍 <strong>Polyglot power:</strong> Between you, ${allLangs.size} programming languages. ${sharedLangs.length} in common — together you're a full-stack army.`);
+      }
+
+      // Multi-clauding
+      if (a.multiClauding.percent > 10 || b.multiClauding.percent > 10) {
+        const multitasker = a.multiClauding.percent > b.multiClauding.percent ? nameA : nameB;
+        const percent = Math.max(a.multiClauding.percent, b.multiClauding.percent);
+        facts.push(`🐙 <strong>Multi-tasker alert:</strong> ${multitasker} runs parallel sessions ${percent}% of the time. Never a dull moment!`);
+      }
+
+      // Session count comparison
+      if (a.sessions > 0 && b.sessions > 0) {
+        const totalSessions = a.sessions + b.sessions;
+        facts.push(`🎯 <strong>Session warriors:</strong> ${totalSessions.toLocaleString()} combined sessions. That's a lot of coding companionship!`);
+      }
+
+      if (facts.length === 0) return '';
+
+      return `
+        <div class="section-card fun-facts">
+          <div class="section-header">
+            <span class="section-icon">🎉</span>
+            <h2 class="section-title">Fun facts</h2>
+          </div>
+          <ul class="insight-list">
+            ${facts.map(f => `<li class="insight-item">${f}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    // Generate collaboration insights based on friction/wins analysis
+    function generateCollaborationInsights(a, b, nameA, nameB) {
+      const insights = [];
+
+      // Find shared friction categories
+      const frictionTitlesA = a.frictionCategories.map(f => typeof f === 'object' ? f.title.toLowerCase() : f.toLowerCase());
+      const frictionTitlesB = b.frictionCategories.map(f => typeof f === 'object' ? f.title.toLowerCase() : f.toLowerCase());
+
+      const sharedFriction = frictionTitlesA.filter(fa =>
+        frictionTitlesB.some(fb => fa.includes(fb.split(' ')[0]) || fb.includes(fa.split(' ')[0]))
+      );
+
+      if (sharedFriction.length > 0) {
+        insights.push(`😤 <strong>Shared struggles:</strong> You both wrestle with similar challenges. Misery loves company — or maybe you can solve them together!`);
+      }
+
+      // Compare tool philosophies
+      const bashRatioA = (a.tools['Bash'] || 0) / (Object.values(a.tools).reduce((s,v)=>s+v,0) || 1);
+      const bashRatioB = (b.tools['Bash'] || 0) / (Object.values(b.tools).reduce((s,v)=>s+v,0) || 1);
+
+      if (Math.abs(bashRatioA - bashRatioB) > 0.2) {
+        const commander = bashRatioA > bashRatioB ? nameA : nameB;
+        const editor = bashRatioA > bashRatioB ? nameB : nameA;
+        insights.push(`🛠️ <strong>Different approaches:</strong> ${commander} prefers command-line warfare while ${editor} lives in the editor. You'd make a great pair — one runs, one refines.`);
+      }
+
+      // Check for complementary big wins
+      const winsA = a.bigWins.map(w => typeof w === 'object' ? w.title.toLowerCase() : w.toLowerCase());
+      const winsB = b.bigWins.map(w => typeof w === 'object' ? w.title.toLowerCase() : w.toLowerCase());
+
+      const uniqueStrengthsA = winsA.filter(wa => !winsB.some(wb => wb.includes(wa.split(' ')[0])));
+      const uniqueStrengthsB = winsB.filter(wb => !winsA.some(wa => wa.includes(wb.split(' ')[0])));
+
+      if (uniqueStrengthsA.length > 0 && uniqueStrengthsB.length > 0) {
+        insights.push(`💪 <strong>Complementary skills:</strong> Each of you has strengths the other doesn't. Perfect for knowledge transfer and learning.`);
+      }
+
+      // Project area overlap
+      const areasA = a.projectAreas.map(p => p.name.toLowerCase());
+      const areasB = b.projectAreas.map(p => p.name.toLowerCase());
+      const sharedAreas = areasA.filter(aa => areasB.some(ab => aa.includes(ab.split(' ')[0]) || ab.includes(aa.split(' ')[0])));
+
+      if (sharedAreas.length > 0) {
+        insights.push(`🎯 <strong>Domain overlap:</strong> You work in similar areas. Great for code reviews and bouncing ideas!`);
+      } else if (areasA.length > 0 && areasB.length > 0) {
+        insights.push(`🌈 <strong>Different domains:</strong> You work in different areas — you'd bring fresh perspectives to each other's code.`);
+      }
+
+      if (insights.length === 0) return '';
+
+      return `
+        <div class="section-card collab-insights">
+          <div class="section-header">
+            <span class="section-icon">🤝</span>
+            <h2 class="section-title">Collaboration potential</h2>
+          </div>
+          <ul class="insight-list">
+            ${insights.map(i => `<li class="insight-item">${i}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
     // Render results
     function renderResults(a, b, mascotA, mascotB, compatibility, insights) {
       const verdict = VERDICTS.find(v => compatibility >= v.min)?.text || VERDICTS[VERDICTS.length - 1].text;
@@ -2001,19 +2282,59 @@
               <div>
                 <strong style="color: var(--coral);">${displayNameA}</strong>
                 <ul style="margin-top: 8px; padding-left: 20px; color: #6b7280;">
-                  ${a.frictionCategories.map(f => `<li>${f}</li>`).join('')}
+                  ${a.frictionCategories.map(f => `<li>${typeof f === 'object' ? f.title : f}</li>`).join('')}
                 </ul>
               </div>
               <div>
                 <strong style="color: var(--orange);">${displayNameB}</strong>
                 <ul style="margin-top: 8px; padding-left: 20px; color: #6b7280;">
-                  ${b.frictionCategories.map(f => `<li>${f}</li>`).join('')}
+                  ${b.frictionCategories.map(f => `<li>${typeof f === 'object' ? f.title : f}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+            ` : ''}
+
+            ${a.bigWins.length > 0 || b.bigWins.length > 0 ? `
+            <h3 class="subsection-title">Big wins</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div>
+                <strong style="color: var(--coral);">${displayNameA}</strong>
+                <ul style="margin-top: 8px; padding-left: 20px; color: #6b7280;">
+                  ${a.bigWins.map(w => `<li>${typeof w === 'object' ? w.title : w}</li>`).join('')}
+                </ul>
+              </div>
+              <div>
+                <strong style="color: var(--orange);">${displayNameB}</strong>
+                <ul style="margin-top: 8px; padding-left: 20px; color: #6b7280;">
+                  ${b.bigWins.map(w => `<li>${typeof w === 'object' ? w.title : w}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+            ` : ''}
+
+            ${a.projectAreas.length > 0 || b.projectAreas.length > 0 ? `
+            <h3 class="subsection-title">Project areas</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div>
+                <strong style="color: var(--coral);">${displayNameA}</strong>
+                <ul style="margin-top: 8px; padding-left: 20px; color: #6b7280;">
+                  ${a.projectAreas.slice(0, 5).map(p => `<li>${p.name}</li>`).join('')}
+                </ul>
+              </div>
+              <div>
+                <strong style="color: var(--orange);">${displayNameB}</strong>
+                <ul style="margin-top: 8px; padding-left: 20px; color: #6b7280;">
+                  ${b.projectAreas.slice(0, 5).map(p => `<li>${p.name}</li>`).join('')}
                 </ul>
               </div>
             </div>
             ` : ''}
           </div>
         </div>
+
+        ${generateFunFacts(a, b, displayNameA, displayNameB)}
+
+        ${generateCollaborationInsights(a, b, displayNameA, displayNameB)}
 
         <div class="share-section">
           <h2 class="share-title">Share your cosmic connection!</h2>
