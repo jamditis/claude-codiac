@@ -30,12 +30,12 @@ Based on usage patterns, users are classified as:
 
 | Mascot | Title | Pattern |
 |--------|-------|---------|
-| 🦫 Beaver | The Builder | High Edit/Write ratio (>35% of tools) |
+| 🔨 Beaver | The Builder | High Edit/Write ratio (>35% of tools) |
 | 🦅 Hawk | The Commander | Bash >50% of tool calls |
 | 🦉 Owl | The Architect | High Read ratio + night activity |
 | 🐆 Cheetah | The Sprinter | Median response time <30s |
 | 🐙 Octopus | The Multi-tasker | Multi-clauding >10% |
-| 🦜 Parrot | The Polyglot | 4+ languages with significant usage |
+| 🐦 Parrot | The Polyglot | 4+ languages with significant usage |
 | 🦊 Fox | The Debugger | High error rate (>10%) |
 | 🐻 Bear | The Marathoner | >500 msgs/day |
 
