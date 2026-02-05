@@ -133,6 +133,15 @@
       color: #b45309;
     }
 
+    .drop-zone.loaded.error {
+      border-color: #dc2626;
+      background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+    }
+
+    .drop-zone.error .loaded-name {
+      color: #991b1b;
+    }
+
     .drop-zone-icon {
       font-size: 3rem;
       margin-bottom: 12px;
@@ -1879,6 +1888,31 @@
 
     // Handle file upload
     function handleFile(file, person) {
+      // Validate file type - only allow HTML files
+      const fileName = file.name.toLowerCase();
+      const isHtml = fileName.endsWith('.html') || fileName.endsWith('.htm');
+
+      if (!isHtml) {
+        const zone = person === 'a' ? dropZoneA : dropZoneB;
+        const statsEl = document.getElementById(person === 'a' ? 'loadedStatsA' : 'loadedStatsB');
+
+        // Show error state briefly
+        zone.classList.add('error');
+        zone.classList.add('loaded');
+        document.getElementById(person === 'a' ? 'loadedNameA' : 'loadedNameB').textContent = file.name;
+        statsEl.innerHTML = `<span style="color: #dc2626;">❌ Please upload an HTML file (.html)</span>`;
+
+        // Reset after 3 seconds
+        setTimeout(() => {
+          zone.classList.remove('loaded', 'error');
+          if (person === 'a') dataA = null;
+          else dataB = null;
+          updateCompareButton();
+        }, 3000);
+
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = (e) => {
         const html = e.target.result;
