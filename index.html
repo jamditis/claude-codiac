@@ -1027,6 +1027,57 @@
     });
 
     // Parse insights report HTML
+    // Helper to safely parse numbers from text
+    function safeParseInt(text) {
+      if (!text) return 0;
+      const cleaned = String(text).replace(/[,\s]/g, '');
+      const num = parseInt(cleaned);
+      return isNaN(num) ? 0 : num;
+    }
+
+    function safeParseFloat(text) {
+      if (!text) return 0;
+      const cleaned = String(text).replace(/[,\s]/g, '');
+      const num = parseFloat(cleaned);
+      return isNaN(num) ? 0 : num;
+    }
+
+    // Helper to find chart by title (flexible matching)
+    function findChartByTitle(doc, ...keywords) {
+      const cards = doc.querySelectorAll('.chart-card, [class*="chart"], [class*="card"]');
+      for (const card of cards) {
+        const title = card.querySelector('.chart-title, h2, h3, [class*="title"]');
+        if (title) {
+          const titleText = title.textContent.toLowerCase();
+          if (keywords.some(kw => titleText.includes(kw.toLowerCase()))) {
+            return card;
+          }
+        }
+      }
+      return null;
+    }
+
+    // Helper to extract bar chart data
+    function extractBarData(card) {
+      const result = {};
+      if (!card) return result;
+
+      // Try multiple selector patterns
+      const rows = card.querySelectorAll('.bar-row, [class*="bar"], tr');
+      rows.forEach(row => {
+        const label = row.querySelector('.bar-label, [class*="label"], td:first-child');
+        const value = row.querySelector('.bar-value, [class*="value"], td:last-child');
+        if (label && value) {
+          const labelText = label.textContent.trim();
+          const valueNum = safeParseInt(value.textContent);
+          if (labelText && valueNum > 0) {
+            result[labelText] = valueNum;
+          }
+        }
+      });
+      return result;
+    }
+
     function parseInsightsReport(html) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
@@ -1049,105 +1100,145 @@
         bigWins: []
       };
 
-      // Parse stats row
-      const statValues = doc.querySelectorAll('.stat-value');
-      statValues.forEach((el, i) => {
-        const text = el.textContent.trim();
-        switch(i) {
-          case 0: data.messages = parseInt(text.replace(/,/g, '')) || 0; break;
-          case 1:
-            const match = text.match(/\+?([\d,]+)\/-?([\d,]+)/);
-            if (match) {
-              data.lines.added = parseInt(match[1].replace(/,/g, '')) || 0;
-              data.lines.removed = parseInt(match[2].replace(/,/g, '')) || 0;
+      try {
+        // Parse stats row - try multiple selectors
+        const statValues = doc.querySelectorAll('.stat-value, [class*="stat"] [class*="value"]');
+        const statsArray = Array.from(statValues).map(el => el.textContent.trim());
+
+        // Also try to find stats by looking for large numbers near labels
+        if (statsArray.length === 0) {
+          // Fallback: search for patterns in text
+          const bodyText = doc.body.textContent;
+          const msgMatch = bodyText.match(/(\d[\d,]*)\s*(?:messages|msgs)/i);
+          if (msgMatch) data.messages = safeParseInt(msgMatch[1]);
+        } else {
+          statsArray.forEach((text, i) => {
+            switch(i) {
+              case 0: data.messages = safeParseInt(text); break;
+              case 1:
+                // Try multiple patterns for lines
+                let match = text.match(/\+?([\d,]+)\s*\/\s*-?([\d,]+)/);
+                if (!match) match = text.match(/(\d[\d,]*)\s*[\/|]\s*(\d[\d,]*)/);
+                if (match) {
+                  data.lines.added = safeParseInt(match[1]);
+                  data.lines.removed = safeParseInt(match[2]);
+                }
+                break;
+              case 2: data.files = safeParseInt(text); break;
+              case 3: data.days = safeParseInt(text); break;
+              case 4: data.msgsPerDay = safeParseFloat(text); break;
             }
+          });
+        }
+
+        // Calculate msgsPerDay if missing but we have messages and days
+        if (data.msgsPerDay === 0 && data.messages > 0 && data.days > 0) {
+          data.msgsPerDay = data.messages / data.days;
+        }
+
+        // Parse tool usage - flexible matching
+        const toolsCard = findChartByTitle(doc, 'tools', 'tool usage');
+        data.tools = extractBarData(toolsCard);
+
+        // Parse languages - flexible matching
+        const langsCard = findChartByTitle(doc, 'language');
+        data.languages = extractBarData(langsCard);
+
+        // Parse errors - flexible matching
+        const errorsCard = findChartByTitle(doc, 'error');
+        data.errors = extractBarData(errorsCard);
+        data.errorTotal = Object.values(data.errors).reduce((a, b) => a + b, 0);
+
+        // Parse time of day - flexible matching
+        const timeCard = findChartByTitle(doc, 'time of day', 'activity');
+        if (timeCard) {
+          const timeData = extractBarData(timeCard);
+          Object.entries(timeData).forEach(([label, value]) => {
+            const lowerLabel = label.toLowerCase();
+            if (lowerLabel.includes('morning')) data.timeOfDay.morning = value;
+            else if (lowerLabel.includes('afternoon')) data.timeOfDay.afternoon = value;
+            else if (lowerLabel.includes('evening')) data.timeOfDay.evening = value;
+            else if (lowerLabel.includes('night')) data.timeOfDay.night = value;
+          });
+        }
+
+        // Parse response time - try multiple patterns
+        const bodyHtml = doc.body.innerHTML;
+        let responseMatch = bodyHtml.match(/Median:\s*([\d.]+)\s*s?\s*[•·\-|]\s*Average:\s*([\d.]+)\s*s?/i);
+        if (!responseMatch) responseMatch = bodyHtml.match(/median[:\s]*([\d.]+)\s*s/i);
+        if (responseMatch) {
+          data.responseTime.median = safeParseFloat(responseMatch[1]);
+          data.responseTime.average = safeParseFloat(responseMatch[2] || responseMatch[1]);
+        }
+
+        // Parse multi-clauding - more flexible patterns
+        const multiPatterns = [
+          /(\d+)\s*(?:<[^>]*>)*\s*Overlap\s*Events/i,
+          /Overlap\s*Events\s*(?:<[^>]*>)*\s*(\d+)/i,
+          /(\d+)\s*overlap/i
+        ];
+        for (const pattern of multiPatterns) {
+          const match = bodyHtml.match(pattern);
+          if (match) { data.multiClauding.events = safeParseInt(match[1]); break; }
+        }
+
+        const sessionsPatterns = [
+          /(\d+)\s*(?:<[^>]*>)*\s*Sessions?\s*Involved/i,
+          /Sessions?\s*Involved\s*(?:<[^>]*>)*\s*(\d+)/i
+        ];
+        for (const pattern of sessionsPatterns) {
+          const match = bodyHtml.match(pattern);
+          if (match) { data.multiClauding.sessions = safeParseInt(match[1]); break; }
+        }
+
+        const percentPatterns = [
+          /(\d+)%\s*(?:<[^>]*>)*\s*(?:Of\s*)?Messages/i,
+          /(\d+)\s*%\s*of\s*messages/i
+        ];
+        for (const pattern of percentPatterns) {
+          const match = bodyHtml.match(pattern);
+          if (match) { data.multiClauding.percent = safeParseInt(match[1]); break; }
+        }
+
+        // Parse rawHourCounts from script - try multiple patterns
+        const scriptPatterns = [
+          /rawHourCounts\s*=\s*(\{[^}]+\})/,
+          /hourCounts\s*[=:]\s*(\{[^}]+\})/,
+          /"hours"\s*:\s*(\{[^}]+\})/
+        ];
+        for (const pattern of scriptPatterns) {
+          const match = html.match(pattern);
+          if (match) {
+            try {
+              data.rawHourCounts = JSON.parse(match[1]);
+              break;
+            } catch (e) {}
+          }
+        }
+
+        // Parse friction categories - try multiple selectors
+        const frictionSelectors = ['.friction-title', '[class*="friction"] [class*="title"]', '.pain-point'];
+        for (const selector of frictionSelectors) {
+          const elements = doc.querySelectorAll(selector);
+          if (elements.length > 0) {
+            elements.forEach(el => data.frictionCategories.push(el.textContent.trim()));
             break;
-          case 2: data.files = parseInt(text.replace(/,/g, '')) || 0; break;
-          case 3: data.days = parseInt(text) || 0; break;
-          case 4: data.msgsPerDay = parseFloat(text) || 0; break;
-        }
-      });
-
-      // Parse tool usage (find the "Top Tools Used" chart)
-      const chartCards = doc.querySelectorAll('.chart-card');
-      chartCards.forEach(card => {
-        const title = card.querySelector('.chart-title');
-        if (!title) return;
-        const titleText = title.textContent.trim();
-
-        if (titleText === 'Top Tools Used') {
-          card.querySelectorAll('.bar-row').forEach(row => {
-            const label = row.querySelector('.bar-label')?.textContent.trim();
-            const value = parseInt(row.querySelector('.bar-value')?.textContent.replace(/,/g, '')) || 0;
-            if (label) data.tools[label] = value;
-          });
+          }
         }
 
-        if (titleText === 'Languages') {
-          card.querySelectorAll('.bar-row').forEach(row => {
-            const label = row.querySelector('.bar-label')?.textContent.trim();
-            const value = parseInt(row.querySelector('.bar-value')?.textContent.replace(/,/g, '')) || 0;
-            if (label) data.languages[label] = value;
-          });
+        // Parse big wins - try multiple selectors
+        const winsSelectors = ['.big-win-title', '[class*="win"] [class*="title"]', '.achievement'];
+        for (const selector of winsSelectors) {
+          const elements = doc.querySelectorAll(selector);
+          if (elements.length > 0) {
+            elements.forEach(el => data.bigWins.push(el.textContent.trim()));
+            break;
+          }
         }
 
-        if (titleText === 'Tool Errors Encountered') {
-          card.querySelectorAll('.bar-row').forEach(row => {
-            const label = row.querySelector('.bar-label')?.textContent.trim();
-            const value = parseInt(row.querySelector('.bar-value')?.textContent.replace(/,/g, '')) || 0;
-            if (label) {
-              data.errors[label] = value;
-              data.errorTotal += value;
-            }
-          });
-        }
-
-        if (titleText.includes('Time of Day')) {
-          card.querySelectorAll('.bar-row').forEach(row => {
-            const label = row.querySelector('.bar-label')?.textContent.trim().toLowerCase();
-            const value = parseInt(row.querySelector('.bar-value')?.textContent.replace(/,/g, '')) || 0;
-            if (label?.includes('morning')) data.timeOfDay.morning = value;
-            if (label?.includes('afternoon')) data.timeOfDay.afternoon = value;
-            if (label?.includes('evening')) data.timeOfDay.evening = value;
-            if (label?.includes('night')) data.timeOfDay.night = value;
-          });
-        }
-      });
-
-      // Parse response time
-      const responseTimeText = doc.body.innerHTML.match(/Median:\s*([\d.]+)s\s*[•·]\s*Average:\s*([\d.]+)s/);
-      if (responseTimeText) {
-        data.responseTime.median = parseFloat(responseTimeText[1]) || 0;
-        data.responseTime.average = parseFloat(responseTimeText[2]) || 0;
+      } catch (e) {
+        console.error('Error parsing insights report:', e);
       }
-
-      // Parse multi-clauding
-      const multiClaudingSection = doc.body.innerHTML;
-      const overlapMatch = multiClaudingSection.match(/<div[^>]*style[^>]*>(\d+)<\/div>\s*<div[^>]*>Overlap Events<\/div>/i);
-      const sessionsMatch = multiClaudingSection.match(/<div[^>]*style[^>]*>(\d+)<\/div>\s*<div[^>]*>Sessions Involved<\/div>/i);
-      const percentMatch = multiClaudingSection.match(/<div[^>]*style[^>]*>(\d+)%<\/div>\s*<div[^>]*>Of Messages<\/div>/i);
-
-      if (overlapMatch) data.multiClauding.events = parseInt(overlapMatch[1]) || 0;
-      if (sessionsMatch) data.multiClauding.sessions = parseInt(sessionsMatch[1]) || 0;
-      if (percentMatch) data.multiClauding.percent = parseInt(percentMatch[1]) || 0;
-
-      // Parse rawHourCounts from script
-      const scriptMatch = html.match(/rawHourCounts\s*=\s*(\{[^}]+\})/);
-      if (scriptMatch) {
-        try {
-          data.rawHourCounts = JSON.parse(scriptMatch[1]);
-        } catch (e) {}
-      }
-
-      // Parse friction categories
-      doc.querySelectorAll('.friction-title').forEach(el => {
-        data.frictionCategories.push(el.textContent.trim());
-      });
-
-      // Parse big wins
-      doc.querySelectorAll('.big-win-title').forEach(el => {
-        data.bigWins.push(el.textContent.trim());
-      });
 
       return data;
     }
