@@ -639,6 +639,23 @@
       transform: scale(1.05);
     }
 
+    .start-over-btn {
+      background: transparent;
+      color: white;
+      border: 2px solid rgba(255,255,255,0.5);
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .start-over-btn:hover {
+      background: rgba(255,255,255,0.2);
+      border-color: white;
+    }
+
     /* Footer */
     .footer {
       text-align: center;
@@ -2439,6 +2456,9 @@
           <button class="share-btn" onclick="shareResults()">🔗 Copy link</button>
           <button class="share-btn" onclick="copyResults()">📋 Copy text</button>
           <button class="share-btn" onclick="takeScreenshot()">📸 Screenshot</button>
+          <div style="margin-top: 16px;">
+            <button class="start-over-btn" onclick="startOver()">🔄 Start over</button>
+          </div>
         </div>
 
         <footer class="footer">
@@ -2490,6 +2510,11 @@
           shareBtn.textContent = '🔗 Copy link';
         }, 2000);
       }
+    }
+
+    function startOver() {
+      // Navigate to the base URL without any query parameters
+      window.location.href = window.location.pathname;
     }
 
     function copyResults() {
