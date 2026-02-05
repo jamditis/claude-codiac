@@ -1080,6 +1080,21 @@
       return isNaN(num) ? 0 : num;
     }
 
+    // Format a number safely for display, with fallback for missing/zero values
+    function formatNum(n, options = {}) {
+      const { suffix = '', fallback = '?', abbreviate = false } = options;
+      if (n === undefined || n === null || isNaN(n)) return fallback;
+      if (n === 0 && options.zeroIsFallback !== false) return fallback;
+
+      if (abbreviate && Math.abs(n) >= 1000000) {
+        return (n / 1000000).toFixed(1) + 'M' + suffix;
+      }
+      if (abbreviate && Math.abs(n) >= 1000) {
+        return Math.round(n / 1000) + 'k' + suffix;
+      }
+      return n.toLocaleString() + suffix;
+    }
+
     // Find a number that appears near a keyword in text
     function findNumberNearKeyword(text, keywords, options = {}) {
       const { lookBefore = 50, lookAfter = 50, parseAsFloat = false } = options;
@@ -2142,12 +2157,12 @@
             <div class="stat-card-title">Code volume</div>
             <div class="stat-comparison">
               <div class="stat-value person-a">
-                <div class="stat-number">${(a.lines.added / 1000).toFixed(0)}k</div>
+                <div class="stat-number">${a.lines.added > 0 ? (a.lines.added >= 1000 ? Math.round(a.lines.added / 1000) + 'k' : a.lines.added) : '?'}</div>
                 <div class="stat-label">lines added</div>
               </div>
               <div class="stat-vs">vs</div>
               <div class="stat-value person-b">
-                <div class="stat-number">${(b.lines.added / 1000).toFixed(0)}k</div>
+                <div class="stat-number">${b.lines.added > 0 ? (b.lines.added >= 1000 ? Math.round(b.lines.added / 1000) + 'k' : b.lines.added) : '?'}</div>
                 <div class="stat-label">lines added</div>
               </div>
             </div>
@@ -2559,12 +2574,12 @@ Compare your coding souls at: ${shareUrl}`;
             <div class="stat-card-title">Code volume</div>
             <div class="stat-comparison">
               <div class="stat-value person-a">
-                <div class="stat-number">${(u1.linesAdded / 1000).toFixed(0)}k</div>
+                <div class="stat-number">${u1.linesAdded > 0 ? (u1.linesAdded >= 1000 ? Math.round(u1.linesAdded / 1000) + 'k' : u1.linesAdded) : '?'}</div>
                 <div class="stat-label">lines added</div>
               </div>
               <div class="stat-vs">vs</div>
               <div class="stat-value person-b">
-                <div class="stat-number">${(u2.linesAdded / 1000).toFixed(0)}k</div>
+                <div class="stat-number">${u2.linesAdded > 0 ? (u2.linesAdded >= 1000 ? Math.round(u2.linesAdded / 1000) + 'k' : u2.linesAdded) : '?'}</div>
                 <div class="stat-label">lines added</div>
               </div>
             </div>
