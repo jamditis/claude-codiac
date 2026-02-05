@@ -124,6 +124,15 @@
       background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
     }
 
+    .drop-zone.loaded.warning {
+      border-color: #f59e0b;
+      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    }
+
+    .drop-zone.warning .loaded-name {
+      color: #b45309;
+    }
+
     .drop-zone-icon {
       font-size: 3rem;
       margin-bottom: 12px;
@@ -1284,6 +1293,50 @@
       return extractLabelValuePairs(card);
     }
 
+    // Validate that the HTML looks like a Claude Code insights report
+    function validateInsightsReport(doc, data) {
+      const warnings = [];
+      let confidence = 0;
+      const bodyText = doc.body.textContent.toLowerCase();
+
+      // Check for Claude Code indicators
+      if (bodyText.includes('claude code') || bodyText.includes('claude code insights')) {
+        confidence += 30;
+      } else {
+        warnings.push('Document doesn\'t mention "Claude Code"');
+      }
+
+      // Check for known Claude Code tools
+      const claudeTools = ['bash', 'edit', 'read', 'write', 'grep', 'glob', 'task', 'webfetch', 'todowrite'];
+      const foundTools = claudeTools.filter(t => data.tools[t] || data.tools[t.charAt(0).toUpperCase() + t.slice(1)]);
+      if (foundTools.length >= 3) {
+        confidence += 30;
+      } else if (foundTools.length >= 1) {
+        confidence += 15;
+      } else {
+        warnings.push('No recognized Claude Code tools found');
+      }
+
+      // Check for expected sections
+      if (doc.querySelector('.stats-row, .stat-value')) confidence += 10;
+      if (doc.querySelector('.chart-card, .bar-row')) confidence += 10;
+      if (doc.querySelector('.at-a-glance, .glance-section')) confidence += 10;
+      if (data.messages > 0) confidence += 5;
+      if (data.responseTime.median > 0) confidence += 5;
+
+      // Flag if top tool is unusual
+      const topTool = Object.entries(data.tools).sort((a, b) => b[1] - a[1])[0];
+      if (topTool && !claudeTools.includes(topTool[0].toLowerCase())) {
+        warnings.push(`Top tool "${topTool[0]}" is not a recognized Claude Code tool`);
+      }
+
+      return {
+        isValid: confidence >= 40,
+        confidence,
+        warnings
+      };
+    }
+
     function parseInsightsReport(html) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
@@ -1641,8 +1694,13 @@
         console.error('Stack:', e.stack);
       }
 
-      // Debug: log parsed data for troubleshooting
+      // Validate and log parsed data
+      const validation = validateInsightsReport(doc, data);
       console.log('Parsed insights data:', data);
+      console.log('Validation:', validation);
+
+      // Attach validation to data object
+      data._validation = validation;
 
       return data;
     }
@@ -1808,17 +1866,38 @@
       reader.onload = (e) => {
         const html = e.target.result;
         const data = parseInsightsReport(html);
+        const validation = data._validation;
 
         if (person === 'a') {
           dataA = data;
           dropZoneA.classList.add('loaded');
           document.getElementById('loadedNameA').textContent = file.name;
-          document.getElementById('loadedStatsA').textContent = `${data.messages.toLocaleString()} messages over ${data.days} days`;
+
+          // Show stats or warning
+          const statsEl = document.getElementById('loadedStatsA');
+          if (!validation.isValid) {
+            dropZoneA.classList.add('warning');
+            statsEl.innerHTML = `<span style="color: #dc2626;">⚠️ This doesn't look like a Claude Code insights report</span>`;
+            statsEl.title = validation.warnings.join('\n');
+          } else {
+            dropZoneA.classList.remove('warning');
+            statsEl.textContent = `${data.messages.toLocaleString()} messages over ${data.days} days`;
+          }
         } else {
           dataB = data;
           dropZoneB.classList.add('loaded');
           document.getElementById('loadedNameB').textContent = file.name;
-          document.getElementById('loadedStatsB').textContent = `${data.messages.toLocaleString()} messages over ${data.days} days`;
+
+          // Show stats or warning
+          const statsEl = document.getElementById('loadedStatsB');
+          if (!validation.isValid) {
+            dropZoneB.classList.add('warning');
+            statsEl.innerHTML = `<span style="color: #dc2626;">⚠️ This doesn't look like a Claude Code insights report</span>`;
+            statsEl.title = validation.warnings.join('\n');
+          } else {
+            dropZoneB.classList.remove('warning');
+            statsEl.textContent = `${data.messages.toLocaleString()} messages over ${data.days} days`;
+          }
         }
 
         updateCompareButton();
