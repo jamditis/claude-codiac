@@ -1,0 +1,31 @@
+# Claude Codiac
+
+> Compare Claude Code /insights reports and discover your coding soul compatibility. Upload two HTML exports and get personality analysis, compatibility scores, and shareable comparison cards.
+
+## Overview
+
+- URL: https://codiac.amditis.tech
+- Author: Joe Amditis
+- Type: Interactive web tool (single-page app)
+
+## What it does
+
+Claude Codiac analyzes Claude Code /insights reports — the usage analytics that Claude Code generates about your coding sessions. Users upload two reports and the tool:
+
+1. Parses usage data (messages, tools, languages, response times, errors)
+2. Assigns each user a mascot personality (Beaver, Hawk, Owl, Cheetah, Octopus, Parrot, Fox, Bear)
+3. Calculates a compatibility score (0-100%)
+4. Generates side-by-side analytics comparing coding patterns
+5. Creates shareable comparison cards for social media
+
+## How to use it
+
+1. Open Claude Code and run `/insights` to generate your report
+2. Export the report as HTML (Save As in your browser)
+3. Visit https://codiac.amditis.tech
+4. Drag and drop two HTML report files
+5. View your compatibility results and share them
+
+## Mascot personalities
+
+Each mascot represents a coding style based on tool usage patterns, language preferences, response times, and error rates. The eight mascots are: Beaver (builder), Hawk (precision), Owl (wisdom), Cheetah (speed), Octopus (multitasker), Parrot (communicator), Fox (clever), Bear (steady).
