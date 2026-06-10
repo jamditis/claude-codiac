@@ -96,6 +96,19 @@ npm install
 wrangler dev
 ```
 
+
+## Console hygiene
+
+The public page should not write routine diagnostics to the browser console. Parser and API diagnostics are gated behind the `?debug` query string so user consoles stay focused on real site errors.
+
+Errors that mention browser extension scripts, such as `background-redux-new.js`, `runtime.lastError`, `LastPass`, `chrome-extension://`, or duplicate extension menu item ids, come from the visitor's installed browser extensions rather than this app. Confirm by reproducing in a private window with extensions disabled.
+
+Run this check before publishing frontend changes:
+
+```bash
+node scripts/check-console-hygiene.mjs
+```
+
 ## Deployment
 
 Frontend:
